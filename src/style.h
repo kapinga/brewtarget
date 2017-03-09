@@ -144,7 +144,8 @@ public:
 
 signals:
    //! \brief Emitted when \c name() changes.
-   void changedName(QString);
+   // void changedName(QString);
+   // This seems to already be defined in BeerXMLElement
 
    /*
    void changedCategory(QString);

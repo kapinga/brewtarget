@@ -312,7 +312,7 @@ public:
 
 signals:
    //! \brief Emitted when \c name() changes.
-   void changedName(const QString&);
+   // void changedName(const QString&);  // Already defined in BeerXMLElements
    
 public slots:
    void acceptEquipChange(QMetaProperty prop, QVariant val);

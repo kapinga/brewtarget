@@ -123,7 +123,7 @@ public:
 
 signals:
    
-   void changedName(QString);
+   // void changedName(QString);  // Already defined in BeerXMLElement
    void changedBoilSize_l(double);
    void changedBatchSize_l(double);
    void changedTunVolume_l(double);

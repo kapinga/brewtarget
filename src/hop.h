@@ -140,7 +140,7 @@ public:
    static QString classNameStr();
 signals:
    //! \brief Emitted when \c name() changes.
-   void changedName(QString);
+   // void changedName(QString);  // Already defined in BeerXMLElement
 
    /*
    void changedAlpha_pct(double);

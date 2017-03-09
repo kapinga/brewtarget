@@ -148,7 +148,7 @@ public:
 signals:
 
    //! \brief Emitted when \c name() changes.
-   void changedName(QString);
+   // void changedName(QString);  // already defined in BeerXMLElement
 
 private:
    Yeast(Brewtarget::DBTable table, int key);
