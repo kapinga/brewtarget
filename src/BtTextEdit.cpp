@@ -27,8 +27,9 @@ BtTextEdit::BtTextEdit(QWidget *parent)
 {
    wasModified = false;
 
-   // We will see if this works...
-   connect(this, &BtTextEdit::textChanged, this, &BtTextEdit::textChanged);
+   // textModified is the signal, textChanged is the slot.
+   // Not sure what this does though...
+   connect(this, &BtTextEdit::textModified, this, &BtTextEdit::textChanged);
 
 }
 
@@ -38,8 +39,8 @@ BtTextEdit::BtTextEdit(const QString &text, QWidget *parent)
 
    wasModified = false;
 
-   // We will see if this works...
-   connect(this, &BtTextEdit::textChanged, this, &BtTextEdit::textChanged);
+   // textModified is the signal, textChanged is the slot.
+   connect(this, &BtTextEdit::textModified, this, &BtTextEdit::textChanged);
 
 }
 
