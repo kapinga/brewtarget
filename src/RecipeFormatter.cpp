@@ -591,7 +591,7 @@ unsigned int RecipeFormatter::getMaxLength( QStringList* list )
 
 QString RecipeFormatter::padToLength( const QString &str, unsigned int length )
 {
-   return QString("%1").arg(str, -length, ' ');
+   return QString("%1").arg(str, -static_cast<int>(length), ' ');
 }
 
 void RecipeFormatter::padAllToMaxLength( QStringList* list, unsigned int padding )
