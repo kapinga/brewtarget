@@ -166,7 +166,7 @@ void RangedSlider::mouseMoveEvent(QMouseEvent* event)
 
 void RangedSlider::paintEvent(QPaintEvent* event)
 {
-   static const QFont textFont("Arial", 14, QFont::Black);
+   static const QFont textFont("Arial", 12, QFont::Bold);
    static const QFontMetrics textFontMetrics(textFont);
    static const QPalette palette(QApplication::palette());
    static const int indTextHeight=16;
