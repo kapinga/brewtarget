@@ -25,8 +25,8 @@ class MashWizard;
 
 #include "ui_mashWizard.h"
 #include <QDialog>
-#include "recipe.h"
-#include "unit.h"
+#include "model/Recipe.h"
+#include "Unit.h"
 
 /*!
  * \class MashWizard
@@ -38,7 +38,7 @@ class MashWizard : public QDialog, public Ui::mashWizard
 {
    Q_OBJECT
 public:
-   MashWizard(QWidget* parent=0);
+   MashWizard(QWidget* parent=nullptr);
    //! Set the recipe to do mash wizardry on.
    void setRecipe(Recipe* rec);
 
@@ -49,8 +49,8 @@ public slots:
 
 private:
    Recipe* recObs;
-   Unit *weightUnit;
-   Unit *volumeUnit;
+   Unit const *weightUnit;
+   Unit const *volumeUnit;
 
    //!brief just need a holder for the three buttons
    QButtonGroup* bGroup;

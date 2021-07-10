@@ -31,20 +31,22 @@
 #include "BtTreeModel.h"
 #include "BtTreeFilterProxyModel.h"
 #include "database.h"
-#include "recipe.h"
-#include "equipment.h"
-#include "fermentable.h"
-#include "hop.h"
-#include "misc.h"
-#include "yeast.h"
-#include "brewnote.h"
-#include "style.h"
+#include "model/Recipe.h"
+#include "model/Equipment.h"
+#include "model/Fermentable.h"
+#include "model/Hop.h"
+#include "model/Misc.h"
+#include "model/Yeast.h"
+#include "model/BrewNote.h"
+#include "model/Style.h"
+#include "model/Water.h"
 #include "FermentableDialog.h"
 #include "EquipmentEditor.h"
 #include "HopDialog.h"
 #include "MiscDialog.h"
 #include "StyleEditor.h"
 #include "YeastDialog.h"
+#include "WaterEditor.h"
 
 BtTreeView::BtTreeView(QWidget *parent, BtTreeModel::TypeMasks type) :
    QTreeView(parent)
@@ -61,12 +63,12 @@ BtTreeView::BtTreeView(QWidget *parent, BtTreeModel::TypeMasks type) :
 
    _type = type;
    _model = new BtTreeModel(this, _type);
-   filter = new BtTreeFilterProxyModel(this, _type);
-   filter->setSourceModel(_model);
-   setModel(filter);
-   filter->setDynamicSortFilter(true);
-   
-   setExpanded(findElement(0), true);
+   _filter = new BtTreeFilterProxyModel(this, _type);
+   _filter->setSourceModel(_model);
+   setModel(_filter);
+   _filter->setDynamicSortFilter(true);
+
+   setExpanded(findElement(nullptr), true);
    setSortingEnabled(true);
    sortByColumn(0,Qt::AscendingOrder);
    resizeColumnToContents(0);
@@ -80,9 +82,11 @@ BtTreeModel* BtTreeView::model()
    return _model;
 }
 
+BtTreeFilterProxyModel* BtTreeView::filter() { return _filter; }
+
 bool BtTreeView::removeRow(const QModelIndex &index)
 {
-   QModelIndex modelIndex = filter->mapToSource(index);
+   QModelIndex modelIndex = _filter->mapToSource(index);
    QModelIndex parent = _model->parent(modelIndex);
    int position       = modelIndex.row();
 
@@ -91,8 +95,8 @@ bool BtTreeView::removeRow(const QModelIndex &index)
 
 bool BtTreeView::isParent(const QModelIndex& parent, const QModelIndex& child)
 {
-   QModelIndex modelParent = filter->mapToSource(parent);
-   QModelIndex modelChild = filter->mapToSource(child);
+   QModelIndex modelParent = _filter->mapToSource(parent);
+   QModelIndex modelChild = _filter->mapToSource(child);
    return modelParent == _model->parent(modelChild);
 }
 
@@ -101,89 +105,94 @@ QModelIndex BtTreeView::parent(const QModelIndex& child)
    if ( ! child.isValid() )
       return QModelIndex();
 
-   QModelIndex modelChild = filter->mapToSource(child);
+   QModelIndex modelChild = _filter->mapToSource(child);
    if ( modelChild.isValid())
-      return filter->mapFromSource(_model->parent(modelChild));
+      return _filter->mapFromSource(_model->parent(modelChild));
 
    return QModelIndex();
 }
 
 QModelIndex BtTreeView::first()
 {
-   return filter->mapFromSource(_model->first());
+   return _filter->mapFromSource(_model->first());
 }
 
 Recipe* BtTreeView::recipe(const QModelIndex &index) const
 {
-   return _model->recipe(filter->mapToSource(index));
+   return _model->recipe(_filter->mapToSource(index));
 }
 
 QString BtTreeView::folderName(QModelIndex index)
 {
-   if ( _model->type(filter->mapToSource(index)) == BtTreeItem::FOLDER)
-      return _model->folder(filter->mapToSource(index))->fullPath();
+   if ( _model->type(_filter->mapToSource(index)) == BtTreeItem::FOLDER)
+      return _model->folder(_filter->mapToSource(index))->fullPath();
 
-   BeerXMLElement* thing = _model->thing(filter->mapToSource(index));
+   NamedEntity* thing = _model->thing(_filter->mapToSource(index));
    if ( thing )
-      return _model->thing(filter->mapToSource(index))->folder();
-   else 
+      return _model->thing(_filter->mapToSource(index))->folder();
+   else
       return "";
 }
 
-QModelIndex BtTreeView::findElement(BeerXMLElement* thing)
+QModelIndex BtTreeView::findElement(NamedEntity* thing)
 {
-   return filter->mapFromSource(_model->findElement(thing));
+   return _filter->mapFromSource(_model->findElement(thing));
 }
 
 Equipment* BtTreeView::equipment(const QModelIndex &index) const
 {
-   return _model->equipment(filter->mapToSource(index));
+   return _model->equipment(_filter->mapToSource(index));
 }
 
 Fermentable* BtTreeView::fermentable(const QModelIndex &index) const
 {
-   return _model->fermentable(filter->mapToSource(index));
+   return _model->fermentable(_filter->mapToSource(index));
 }
 
 Hop* BtTreeView::hop(const QModelIndex &index) const
 {
-   return _model->hop(filter->mapToSource(index));
+   return _model->hop(_filter->mapToSource(index));
 }
 
 Misc* BtTreeView::misc(const QModelIndex &index) const
 {
-   return _model->misc(filter->mapToSource(index));
+   return _model->misc(_filter->mapToSource(index));
 }
 
 Yeast* BtTreeView::yeast(const QModelIndex &index) const
 {
-   return _model->yeast(filter->mapToSource(index));
+   return _model->yeast(_filter->mapToSource(index));
 }
 
 Style* BtTreeView::style(const QModelIndex &index) const
 {
-   return _model->style(filter->mapToSource(index));
+   return _model->style(_filter->mapToSource(index));
+}
+
+Water* BtTreeView::water(const QModelIndex &index) const
+{
+   return _model->water(_filter->mapToSource(index));
 }
 
 BrewNote* BtTreeView::brewNote(const QModelIndex &index) const
 {
-   if ( ! index.isValid() ) 
-      return NULL;
+   if ( ! index.isValid() )
+      return nullptr;
 
-   return _model->brewNote(filter->mapToSource(index));
+   return _model->brewNote(_filter->mapToSource(index));
 }
 
 BtFolder* BtTreeView::folder(const QModelIndex &index) const
 {
-   if ( ! index.isValid() ) 
-      return NULL;
+   if ( ! index.isValid() )
+      return nullptr;
 
-   return _model->folder(filter->mapToSource(index));
+   return _model->folder(_filter->mapToSource(index));
 }
 
 QModelIndex BtTreeView::findFolder(BtFolder* folder)
 {
-   return filter->mapFromSource(_model->findFolder(folder->fullPath(), NULL, false));
+   return _filter->mapFromSource(_model->findFolder(folder->fullPath(), nullptr, false));
 }
 
 void BtTreeView::addFolder(QString folder)
@@ -198,7 +207,7 @@ void BtTreeView::renameFolder(BtFolder* victim, QString newName)
 
 int BtTreeView::type(const QModelIndex &index)
 {
-   return _model->type(filter->mapToSource(index));
+   return _model->type(_filter->mapToSource(index));
 }
 
 void BtTreeView::mousePressEvent(QMouseEvent *event)
@@ -242,8 +251,8 @@ void BtTreeView::mouseMoveEvent(QMouseEvent *event)
    QMimeData *data = mimeData(selectionModel()->selectedRows());
 
    drag->setMimeData(data);
-   drag->start(Qt::CopyAction);
-} 
+   drag->exec(Qt::CopyAction);
+}
 
 void BtTreeView::keyPressEvent(QKeyEvent *event)
 {
@@ -259,7 +268,7 @@ void BtTreeView::keyPressEvent(QKeyEvent *event)
    QTreeView::keyPressEvent(event);
 }
 
-QMimeData* BtTreeView::mimeData(QModelIndexList indexes) 
+QMimeData* BtTreeView::mimeData(QModelIndexList indexes)
 {
    QMimeData *mimeData = new QMimeData();
    QByteArray encodedData;
@@ -278,24 +287,30 @@ QMimeData* BtTreeView::mimeData(QModelIndexList indexes)
          continue;
 
       _type = type(index);
-      if ( _type != BtTreeItem::FOLDER ) 
+      if ( _type != BtTreeItem::FOLDER )
       {
-         id   = _model->thing(filter->mapToSource(index))->key();
-         name = _model->name(filter->mapToSource(index));
-         // Save this for later reference
-         if ( itsa == -1 )
-            itsa = _type;
+         if ( _model->thing( _filter->mapToSource(index)) == nullptr ) {
+            qWarning() << QString("Couldn't map that thing");
+            id = -1;
+         }
+         else {
+            id   = _model->thing(_filter->mapToSource(index))->key();
+            name = _model->name(_filter->mapToSource(index));
+            // Save this for later reference
+            if ( itsa == -1 )
+               itsa = _type;
+         }
       }
-      else 
+      else
       {
          id = -1;
-         name = _model->folder(filter->mapToSource(index))->fullPath();
+         name = _model->folder(_filter->mapToSource(index))->fullPath();
       }
       stream << _type << id << name;
    }
 
    // Recipes, equipment and styles get dropped on the recipe pane
-   if ( itsa == BtTreeItem::RECIPE || itsa == BtTreeItem::STYLE || itsa == BtTreeItem::EQUIPMENT ) 
+   if ( itsa == BtTreeItem::RECIPE || itsa == BtTreeItem::STYLE || itsa == BtTreeItem::EQUIPMENT )
       name = "application/x-brewtarget-recipe";
    // Everything other than folders get dropped on the ingredients pane
    else if ( itsa != -1 )
@@ -316,12 +331,12 @@ bool BtTreeView::multiSelected()
    hasRecipe        = false;
    hasSomethingElse = false;
 
-   if ( selected.count() == 0 ) 
+   if ( selected.count() == 0 )
       return false;
 
    foreach (QModelIndex selection, selected)
    {
-      QModelIndex selectModel = filter->mapToSource(selection);
+      QModelIndex selectModel = _filter->mapToSource(selection);
       if (_model->isRecipe(selectModel))
          hasRecipe = true;
       else
@@ -331,7 +346,7 @@ bool BtTreeView::multiSelected()
    return hasRecipe && hasSomethingElse;
 }
 
-void BtTreeView::newIngredient() {
+void BtTreeView::newNamedEntity() {
 
    QString folder;
    QModelIndexList indexes = selectionModel()->selectedRows();
@@ -359,11 +374,82 @@ void BtTreeView::newIngredient() {
       case BtTreeModel::YEASTMASK:
          qobject_cast<YeastDialog*>(_editor)->newYeast(folder);
          break;
+      case BtTreeModel::WATERMASK:
+         qobject_cast<WaterEditor*>(_editor)->newWater(folder);
+         break;
       default:
-         Brewtarget::logW(QString("BtTreeView::setupContextMenu unrecognized mask %1").arg(_type));
+         qWarning() << QString("BtTreeView::setupContextMenu unrecognized mask %1").arg(_type);
    }
 
 }
+
+void BtTreeView::showAncestors()
+{
+   if ( _type == BtTreeModel::RECIPEMASK ) {
+      QModelIndexList ndxs = selectionModel()->selectedRows();
+
+      // I hear a noise at the door, as of some immense slippery body
+      // lumbering against it
+      foreach( QModelIndex selected, ndxs ) {
+         _model->showAncestors(_filter->mapToSource(selected));
+      }
+   }
+}
+
+void BtTreeView::hideAncestors()
+{
+   if ( _type == BtTreeModel::RECIPEMASK ) {
+      QModelIndexList ndxs = selectionModel()->selectedRows();
+
+      // I hear a noise at the door, as of some immense slippery body
+      // lumbering against it
+      foreach( QModelIndex selected, ndxs ) {
+         // make sure we add the ancestors to the exclusion list
+         _model->hideAncestors(_filter->mapToSource(selected));
+      }
+   }
+}
+
+void BtTreeView::orphanRecipe()
+{
+   if ( _type == BtTreeModel::RECIPEMASK ) {
+      QModelIndexList ndxs = selectionModel()->selectedRows();
+
+      // I hear a noise at the door, as of some immense slippery body
+      // lumbering against it
+      foreach( QModelIndex selected, ndxs ) {
+         // make sure we add the ancestors to the exclusion list
+         _model->orphanRecipe(_filter->mapToSource(selected));
+      }
+   }
+}
+
+void BtTreeView::spawnRecipe()
+{
+   if ( _type == BtTreeModel::RECIPEMASK ) {
+      QModelIndexList ndxs = selectionModel()->selectedRows();
+
+      foreach( QModelIndex selected, ndxs ) {
+         // make sure we add the ancestors to the exclusion list
+         _model->spawnRecipe(_filter->mapToSource(selected));
+      }
+   }
+}
+
+bool BtTreeView::ancestorsAreShowing(QModelIndex ndx)
+{
+   if ( _type == BtTreeModel::RECIPEMASK ) {
+      QModelIndex translated = _filter->mapToSource(ndx);
+      return _model->showChild(translated);
+   }
+
+   return false;
+}
+void BtTreeView::enableDelete(bool enable)       { m_deleteAction->setEnabled(enable); }
+void BtTreeView::enableShowAncestor(bool enable) { m_showAncestorAction->setEnabled(enable); }
+void BtTreeView::enableHideAncestor(bool enable) { m_hideAncestorAction->setEnabled(enable); }
+void BtTreeView::enableOrphan(bool enable)       { m_orphanAction->setEnabled(enable); }
+void BtTreeView::enableSpawn(bool enable)        { m_spawnAction->setEnabled(enable); }
 
 void BtTreeView::setupContextMenu(QWidget* top, QWidget* editor)
 {
@@ -372,19 +458,28 @@ void BtTreeView::setupContextMenu(QWidget* top, QWidget* editor)
 
    _contextMenu = new QMenu(this);
    subMenu = new QMenu(this);
+   m_versionMenu = new QMenu(this);
 
    _editor = editor;
 
    _newMenu->setTitle(tr("New"));
    _contextMenu->addMenu(_newMenu);
-   _contextMenu->addSeparator();
 
-   switch(_type) 
+   switch(_type)
    {
       // the recipe case is a bit more complex, because we need to handle the brewnotes too
       case BtTreeModel::RECIPEMASK:
          _newMenu->addAction(tr("Recipe"), editor, SLOT(newRecipe()));
 
+         // version menu
+         m_versionMenu->setTitle("Snapshots");
+         m_showAncestorAction = m_versionMenu->addAction( tr("Show Snapshots"), this, SLOT(showAncestors()));
+         m_hideAncestorAction = m_versionMenu->addAction( tr("Hide Snapshots"), this, SLOT(hideAncestors()));
+         m_orphanAction = m_versionMenu->addAction( tr("Detach Recipe"), this, SLOT(orphanRecipe()));
+         m_spawnAction  = m_versionMenu->addAction( tr("Snapshot Recipe"), this, SLOT(spawnRecipe()));
+         _contextMenu->addMenu(m_versionMenu);
+
+         _contextMenu->addSeparator();
          _contextMenu->addAction(tr("Brew It!"), top, SLOT(brewItHelper()));
          _contextMenu->addSeparator();
 
@@ -395,32 +490,36 @@ void BtTreeView::setupContextMenu(QWidget* top, QWidget* editor)
 
          break;
       case BtTreeModel::EQUIPMASK:
-         _newMenu->addAction(tr("Equipment"), this, SLOT(newIngredient()));
+         _newMenu->addAction(tr("Equipment"), this, SLOT(newNamedEntity()));
          break;
       case BtTreeModel::FERMENTMASK:
-         _newMenu->addAction(tr("Fermentable"), this, SLOT(newIngredient()));
+         _newMenu->addAction(tr("Fermentable"), this, SLOT(newNamedEntity()));
          break;
       case BtTreeModel::HOPMASK:
-         _newMenu->addAction(tr("Hop"), this, SLOT(newIngredient()));
+         _newMenu->addAction(tr("Hop"), this, SLOT(newNamedEntity()));
          break;
       case BtTreeModel::MISCMASK:
-         _newMenu->addAction(tr("Misc"), this, SLOT(newIngredient()));
+         _newMenu->addAction(tr("Misc"), this, SLOT(newNamedEntity()));
          break;
       case BtTreeModel::STYLEMASK:
-         _newMenu->addAction(tr("Style"), this, SLOT(newIngredient()));
+         _newMenu->addAction(tr("Style"), this, SLOT(newNamedEntity()));
          break;
       case BtTreeModel::YEASTMASK:
-         _newMenu->addAction(tr("Yeast"), this, SLOT(newIngredient()));
+         _newMenu->addAction(tr("Yeast"), this, SLOT(newNamedEntity()));
+         break;
+      case BtTreeModel::WATERMASK:
+         _newMenu->addAction(tr("Water"), this, SLOT(newNamedEntity()));
          break;
       default:
-         Brewtarget::logW(QString("BtTreeView::setupContextMenu unrecognized mask %1").arg(_type));
+         qWarning() << QString("BtTreeView::setupContextMenu unrecognized mask %1").arg(_type);
    }
 
+   _contextMenu->addSeparator();
    _newMenu->addAction(tr("Folder"), top, SLOT(newFolder()));
    // Copy
    _contextMenu->addAction(tr("Copy"), top, SLOT(copySelected()));
-   // Delete
-   _contextMenu->addAction(tr("Delete"), top, SLOT(deleteSelected()));
+   // m_deleteAction makes it easier to find this later to disable it
+   m_deleteAction = _contextMenu->addAction(tr("Delete"), top, SLOT(deleteSelected()));
    // export and import
    _contextMenu->addSeparator();
    _exportMenu->setTitle(tr("Export"));
@@ -428,13 +527,36 @@ void BtTreeView::setupContextMenu(QWidget* top, QWidget* editor)
    _exportMenu->addAction(tr("To HTML"), top, SLOT(exportSelectedHtml()));
    _contextMenu->addMenu(_exportMenu);
    _contextMenu->addAction(tr("Import"), top, SLOT(importFiles()));
-   
+
 }
 
 QMenu* BtTreeView::contextMenu(QModelIndex selected)
 {
    if ( type(selected) == BtTreeItem::BREWNOTE )
       return subMenu;
+
+   if ( type(selected) == BtTreeItem::RECIPE ) {
+      Recipe *rec = recipe(selected);
+      QModelIndex translated = _filter->mapToSource(selected);
+
+      // you can not delete a locked recipe
+      enableDelete( ! rec->locked() );
+
+      // if we have ancestors and are showing them but are not an actual
+      // ancestor, then enable hide
+      enableHideAncestor(rec->hasAncestors() && _model->showChild(translated) && rec->display());
+
+      // if we have ancestors and are not showing them, enable showAncestors
+      enableShowAncestor(rec->hasAncestors() && ! _model->showChild(translated));
+
+      // if we have ancestors and are not locked, then we are a leaf node and
+      // allow orphaning
+      enableOrphan(rec->hasAncestors() && ! rec->locked() );
+
+      // if display is true, we can spawn it. This should mean we cannot spawn
+      // ancestors directly, which is what I want.
+      enableSpawn( rec->display() );
+   }
 
    return _contextMenu;
 }
@@ -456,7 +578,7 @@ QString BtTreeView::verifyCopy(QString tag, QString name, bool *abort)
 
       name = askEm.textValue();
    }
-   else 
+   else
    {
       if ( abort )
          *abort = true;
@@ -472,7 +594,7 @@ void BtTreeView::copySelected(QModelIndexList selected)
    QModelIndexList translated;
    bool abort = false;
 
-   // Time to lay down the boogie 
+   // Time to lay down the boogie
    foreach( QModelIndex at, selected )
    {
       // If somebody said cancel, bug out
@@ -480,10 +602,10 @@ void BtTreeView::copySelected(QModelIndexList selected)
          return;
 
       // First, we should translate from proxy to model, because I need this index a lot.
-      QModelIndex trans = filter->mapToSource(at);
+      QModelIndex trans = _filter->mapToSource(at);
 
       // You can't delete the root element
-      if ( trans == findElement(0) )
+      if ( trans == findElement(nullptr) )
          continue;
 
       // Otherwise prompt
@@ -510,8 +632,11 @@ void BtTreeView::copySelected(QModelIndexList selected)
          case BtTreeItem::YEAST:
             newName = verifyCopy(tr("Yeast"),_model->name(trans), &abort);
             break;
+         case BtTreeItem::WATER:
+            newName = verifyCopy(tr("Water"),_model->name(trans), &abort);
+            break;
          default:
-            Brewtarget::logW( QString("BtTreeView::copySelected Unknown type: %1").arg(_model->type(trans)));
+            qWarning() << QString("BtTreeView::copySelected Unknown type: %1").arg(_model->type(trans));
       }
       if ( !abort && !newName.isEmpty() )
          names.append(qMakePair(trans,newName));
@@ -540,8 +665,8 @@ void BtTreeView::deleteSelected(QModelIndexList selected)
    QModelIndexList translated;
 
    int confirmDelete = QMessageBox::NoButton;
-  
-   // Time to lay down the boogie 
+
+   // Time to lay down the boogie
    foreach( QModelIndex at, selected )
    {
       // If somebody said cancel, bug out
@@ -549,10 +674,10 @@ void BtTreeView::deleteSelected(QModelIndexList selected)
          return;
 
       // First, we should translate from proxy to model, because I need this index a lot.
-      QModelIndex trans = filter->mapToSource(at);
+      QModelIndex trans = _filter->mapToSource(at);
 
       // You can't delete the root element
-      if ( trans == findElement(0) )
+      if ( trans == findElement(nullptr) )
          continue;
 
       // If we have alread said "Yes To All", just append and go
@@ -561,7 +686,7 @@ void BtTreeView::deleteSelected(QModelIndexList selected)
          translated.append(trans);
          continue;
       }
-      
+
       // Otherwise prompt
       switch(_model->type(trans))
       {
@@ -590,10 +715,13 @@ void BtTreeView::deleteSelected(QModelIndexList selected)
             confirmDelete = verifyDelete(confirmDelete,tr("BrewNote"),_model->brewNote(trans)->brewDate_short());
             break;
          case BtTreeItem::FOLDER:
-            confirmDelete = verifyDelete(confirmDelete,tr("Folder"),_model->name(trans));
+            confirmDelete = verifyDelete(confirmDelete,tr("Folder"),_model->folder(trans)->fullPath());
+            break;
+         case BtTreeItem::WATER:
+            confirmDelete = verifyDelete(confirmDelete,tr("Water"),_model->name(trans));
             break;
          default:
-            Brewtarget::logW( QString("BtTreeView::deleteSelected Unknown type: %1").arg(_model->type(trans)));
+            qWarning() << QString("BtTreeView::deleteSelected Unknown type: %1").arg(_model->type(trans));
       }
       // If they selected "Yes" or "Yes To All", push and loop
       if ( confirmDelete == QMessageBox::Yes || confirmDelete == QMessageBox::YesToAll )
@@ -603,18 +731,32 @@ void BtTreeView::deleteSelected(QModelIndexList selected)
    _model->deleteSelected(translated);
 }
 
+void BtTreeView::setFilter(BtTreeFilterProxyModel *newFilter)
+{
+   _filter = newFilter;
+}
+
+BtTreeFilterProxyModel* BtTreeView::filter() const
+{
+   return _filter;
+}
+
 void BtTreeView::expandFolder(BtTreeModel::TypeMasks kindaThing, QModelIndex fIdx)
 {
    // FUN! I get to map from source this time.
    // I don't have to check if this is a folder (I think?)
-   if ( kindaThing & _type && fIdx.isValid() && ! isExpanded(filter->mapFromSource(fIdx) ))
-      setExpanded(filter->mapFromSource(fIdx),true);
+   if ( kindaThing & _type && fIdx.isValid() && ! isExpanded(_filter->mapFromSource(fIdx) ))
+      setExpanded(_filter->mapFromSource(fIdx),true);
 }
+
+void BtTreeView::versionedRecipe(Recipe* descendant) { emit recipeSpawn(descendant); }
+
 // Bad form likely
 
 RecipeTreeView::RecipeTreeView(QWidget *parent)
    : BtTreeView(parent, BtTreeModel::RECIPEMASK)
 {
+   connect( _model, &BtTreeModel::recipeSpawn, this, &BtTreeView::versionedRecipe );
 }
 
 EquipmentTreeView::EquipmentTreeView(QWidget *parent)
@@ -649,5 +791,11 @@ YeastTreeView::YeastTreeView(QWidget *parent)
 // Nope. Apparently not, cause I keep adding more
 StyleTreeView::StyleTreeView(QWidget *parent)
    : BtTreeView(parent,BtTreeModel::STYLEMASK)
+{
+}
+
+// Cthulhu take me
+WaterTreeView::WaterTreeView(QWidget *parent)
+   : BtTreeView(parent,BtTreeModel::WATERMASK)
 {
 }

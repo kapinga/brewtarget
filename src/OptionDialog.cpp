@@ -1,6 +1,7 @@
 /*
  * OptionDialog.cpp is part of Brewtarget, and is Copyright the following
- * authors 2009-2014
+ * authors 2009-2021
+ * - Matt Young <mfsy@yahoo.com>
  * - Mik Firestone <mikfire@gmail.com>
  * - Philip Greggory Lee <rocketman768@gmail.com>
  * - Rob Taylor <robtaylor@floopily.org>
@@ -22,28 +23,16 @@
 #include "OptionDialog.h"
 #include "brewtarget.h"
 #include "BtLineEdit.h"
-#include "UnitSystems.h"
-#include "USWeightUnitSystem.h"
-#include "SIWeightUnitSystem.h"
-#include "ImperialVolumeUnitSystem.h"
-#include "USVolumeUnitSystem.h"
-#include "SIVolumeUnitSystem.h"
-#include "FahrenheitTempUnitSystem.h"
-#include "EbcColorUnitSystem.h"
-#include "SrmColorUnitSystem.h"
-#include "PlatoDensityUnitSystem.h"
-#include "SgDensityUnitSystem.h"
-#include "DiastaticPowerUnitSystem.h"
-#include "CelsiusTempUnitSystem.h"
+#include "UnitSystem.h"
 #include "database.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include "MainWindow.h"
+#include "qsizepolicy.h"
+#include "qwidget.h"
 
 OptionDialog::OptionDialog(QWidget* parent)
 {
-   int i;
-
    // I need a lot of control over what is displayed on the DbConfig dialog.
    // Maybe designer can do it? No idea. So I did this hybrid model, and I
    // think it will end up biting my ...
@@ -52,10 +41,42 @@ OptionDialog::OptionDialog(QWidget* parent)
    createPostgresElements();
    createSQLiteElements();
 
-   if( parent != 0 )
-   {
+   if( parent != nullptr ) {
       setWindowIcon(parent->windowIcon());
    }
+
+   // configure the language panel
+   configure_languages();
+
+   // Call this here to set up translatable strings.
+   retranslate();
+
+   // populate the combo boxes on the units tab
+   configure_unitCombos();
+
+   // populate the combo boxes on the formulas tab
+   configure_formulaCombos();
+
+   // populate the combo boxes on the logging tab
+   configure_logging();
+
+   // database panel stuff
+   comboBox_engine->addItem( tr("SQLite (default)"), QVariant(Brewtarget::SQLITE));
+   comboBox_engine->addItem( tr("PostgreSQL"), QVariant(Brewtarget::PGSQL));
+
+   // figure out which database we have
+   int idx = comboBox_engine->findData(Brewtarget::option("dbType", Brewtarget::SQLITE).toInt());
+   setDbDialog(static_cast<Brewtarget::DBTypes>(idx));
+
+   // connect all the signals
+   connect_signals();
+
+   pushButton_testConnection->setEnabled(false);
+}
+
+void OptionDialog::configure_languages()
+{
+   int i;
 
    ndxToLangCode <<
       "ca" <<
@@ -88,7 +109,7 @@ OptionDialog::OptionDialog(QWidget* parent)
    langIcons <<
       /*ca*/ QIcon(":images/flagCatalonia.svg") <<
       /*cs*/ QIcon(":images/flagCzech.svg") <<
-      /*da*/ QIcon() <<
+      /*da*/ QIcon(":images/flagDenmark.svg") <<
       /*de*/ QIcon(":images/flagGermany.svg") <<
       /*el*/ QIcon(":images/flagGreece.svg") <<
       /*en*/ QIcon(":images/flagUK.svg") <<
@@ -100,22 +121,22 @@ OptionDialog::OptionDialog(QWidget* parent)
       /*hu*/ QIcon() <<
       /*it*/ QIcon(":images/flagItaly.svg") <<
       /*lv*/ QIcon() <<
-      /*nb*/ QIcon() <<
+      /*nb*/ QIcon(":images/flagNorway.svg") <<
       /*nl*/ QIcon(":images/flagNetherlands.svg") <<
       /*pl*/ QIcon(":images/flagPoland.svg") <<
       /*pt*/ QIcon(":images/flagBrazil.svg") <<
       /*ru*/ QIcon(":images/flagRussia.svg") <<
       /*sr*/ QIcon() <<
-      /*sv*/ QIcon() <<
+      /*sv*/ QIcon(":images/flagSweden.svg") <<
       /*tr*/ QIcon() <<
       /*zh*/ QIcon(":images/flagChina.svg");
    // Set icons.
    for( i = 0; i < langIcons.size(); ++i )
       comboBox_lang->setItemIcon(i, langIcons[i]);
+}
 
-   // Call this here to set up translatable strings.
-   retranslate();
-
+void OptionDialog::configure_unitCombos()
+{
    // Populate combo boxes on the "Units" tab
    weightComboBox->addItem(tr("SI units"), QVariant(SI));
    weightComboBox->addItem(tr("US traditional units"), QVariant(USCustomary));
@@ -137,7 +158,10 @@ OptionDialog::OptionDialog(QWidget* parent)
 
    colorComboBox->addItem(tr("SRM"), QVariant(Brewtarget::SRM));
    colorComboBox->addItem(tr("EBC"), QVariant(Brewtarget::EBC));
+}
 
+void OptionDialog::configure_formulaCombos()
+{
    diastaticPowerComboBox->addItem(tr("Lintner"), QVariant(Brewtarget::LINTNER));
    diastaticPowerComboBox->addItem(tr("WK"), QVariant(Brewtarget::WK));
 
@@ -149,21 +173,39 @@ OptionDialog::OptionDialog(QWidget* parent)
    colorFormulaComboBox->addItem(tr("Mosher's approximation"), QVariant(Brewtarget::MOSHER));
    colorFormulaComboBox->addItem(tr("Daniel's approximation"), QVariant(Brewtarget::DANIEL));
    colorFormulaComboBox->addItem(tr("Morey's approximation"), QVariant(Brewtarget::MOREY));
+}
+
+void OptionDialog::configure_logging()
+{
+   //Populate options on the "Logging" tab
+   loggingLevelComboBox->addItem(tr("Information"), QVariant(Log::LogType_INFO));
+   loggingLevelComboBox->addItem(tr("Warning"), QVariant(Log::LogType_WARNING));
+   loggingLevelComboBox->addItem(tr("Error"), QVariant(Log::LogType_ERROR));
+   loggingLevelComboBox->addItem(tr("Debug"), QVariant(Log::LogType_DEBUG));
+   loggingLevelComboBox->setCurrentIndex(Log::logLevel);
+
+   checkBox_enableLogging->setChecked(Log::loggingEnabled);
+   checkBox_LogFileLocationUseDefault->setChecked(Log::logUseConfigDir);
+
+   lineEdit_LogFileLocation->setText(Log::logFilePath.absolutePath());
+
+   setLoggingControlsState(Log::loggingEnabled);
+   setFileLocationState(Log::logUseConfigDir);
+}
+
+void OptionDialog::connect_signals()
+{
 
    connect( buttonBox, &QDialogButtonBox::accepted, this, &OptionDialog::saveAndClose );
    connect( buttonBox, &QDialogButtonBox::rejected, this, &OptionDialog::cancel );
 
-   // database panel stuff
-   comboBox_engine->addItem( tr("SQLite (default)"), QVariant(Brewtarget::SQLITE));
-   comboBox_engine->addItem( tr("PostgreSQL"), QVariant(Brewtarget::PGSQL));
    connect( comboBox_engine, SIGNAL( currentIndexChanged(int) ), this, SLOT( setEngine(int) ) );
    connect( pushButton_testConnection, &QAbstractButton::clicked, this, &OptionDialog::testConnection);
 
-   // figure out which database we have
-   setDbDialog((Brewtarget::DBTypes)Brewtarget::option("dbType", Brewtarget::SQLITE).toInt());
-
    // Set the signals
    connect( checkBox_savePassword, &QAbstractButton::clicked, this, &OptionDialog::savePassword);
+   connect( checkBox_enableLogging, &QAbstractButton::clicked, this, &OptionDialog::setLoggingControlsState);
+   connect( checkBox_LogFileLocationUseDefault, &QAbstractButton::clicked, this, &OptionDialog::setFileLocationState);
 
    connect( btStringEdit_hostname, &BtLineEdit::textModified, this, &OptionDialog::testRequired);
    connect( btStringEdit_portnum, &BtLineEdit::textModified, this, &OptionDialog::testRequired);
@@ -175,8 +217,15 @@ OptionDialog::OptionDialog(QWidget* parent)
    connect( pushButton_browseDataDir, &QAbstractButton::clicked, this, &OptionDialog::setDataDir );
    connect( pushButton_browseBackupDir, &QAbstractButton::clicked, this, &OptionDialog::setBackupDir );
    connect( pushButton_resetToDefault, &QAbstractButton::clicked, this, &OptionDialog::resetToDefault );
-   pushButton_testConnection->setEnabled(false);
+   connect( pushButton_LogFileLocationBrowse, &QAbstractButton::clicked, this, &OptionDialog::setLogDir );
 
+   connect( checkBox_versioning, &QAbstractButton::clicked, this, &OptionDialog::versioningChanged);
+   connect( checkBox_alwaysShowSnaps, &QAbstractButton::clicked, this, &OptionDialog::signalAncestors);
+}
+
+void OptionDialog::signalAncestors()
+{ 
+   emit showAllAncestors(checkBox_alwaysShowSnaps->checkState() == Qt::Checked);
 }
 
 void OptionDialog::retranslate()
@@ -237,10 +286,16 @@ void OptionDialog::setBackupDir()
       btStringEdit_backupDir->setText( dir );
 }
 
+void OptionDialog::setLogDir()
+{
+   QString dir = QFileDialog::getExistingDirectory(this, tr("Open Directory"), Brewtarget::getUserDataDir().canonicalPath(), QFileDialog::ShowDirsOnly);
+   if( ! dir.isEmpty() )
+      lineEdit_LogFileLocation->setText( dir );
+}
+
 void OptionDialog::resetToDefault()
 {
-
-   Brewtarget::DBTypes engine = (Brewtarget::DBTypes)comboBox_engine->currentIndex();
+   Brewtarget::DBTypes engine = static_cast<Brewtarget::DBTypes>(comboBox_engine->currentData().toInt());
    if ( engine == Brewtarget::PGSQL ) {
       btStringEdit_hostname->setText(QString("localhost"));
       btStringEdit_portnum->setText(QString("5432"));
@@ -256,206 +311,6 @@ void OptionDialog::resetToDefault()
       spinBox_frequency->setValue(4);
       spinBox_numBackups->setValue(10);
    }
-}
-
-void OptionDialog::saveAndClose()
-{
-   bool okay = false;
-   bool saveDbConfig = true;
-
-   // TODO:: FIX THIS UI. I am really not sure what the best approach is here.
-   if ( status == OptionDialog::NEEDSTEST || status == OptionDialog::TESTFAILED ) {
-      QMessageBox::critical(0,
-            tr("Test connection or cancel"),
-            tr("Saving the options without testing the connection can cause brewtarget to not restart. Your changes have been discarded, which is likely really, really crappy UX. Please open a bug explaining exactly how you got to this message.")
-            );
-      return;
-   }
-
-   if ( status == OptionDialog::TESTPASSED ) {
-      // This got unpleasant. There are multiple possible transer paths.
-      // SQLite->Pgsql, Pgsql->Pgsql and Pgsql->SQLite. This will ensure we
-      // preserve the information required.
-      try {
-         QString theQuestion = tr("Would you like brewtarget to transfer your data to the new database? NOTE: If you've already loaded the data, say No");
-         if ( QMessageBox::Yes == QMessageBox::question(this, tr("Transfer database"), theQuestion) )
-            Database::instance().convertDatabase(btStringEdit_hostname->text(), btStringEdit_dbname->text(),
-                                                 btStringEdit_username->text(), btStringEdit_password->text(),
-                                                 btStringEdit_portnum->text().toInt(),
-                                                 (Brewtarget::DBTypes)comboBox_engine->currentIndex());
-         // Database engine stuff
-         Brewtarget::setOption("dbType", comboBox_engine->currentIndex());
-         Brewtarget::setOption("dbHostname", btStringEdit_hostname->text());
-         Brewtarget::setOption("dbPortnum", btStringEdit_portnum->text());
-         Brewtarget::setOption("dbSchema", btStringEdit_schema->text());
-         Brewtarget::setOption("dbName", btStringEdit_dbname->text());
-         Brewtarget::setOption("dbUsername", btStringEdit_username->text());
-         QMessageBox::information(this, tr("Restart"), tr("Please restart brewtarget to connect to the new database"));
-      }
-      catch (QString e) {
-         Brewtarget::logE(QString("%1 %2").arg(Q_FUNC_INFO).arg(e));
-         saveDbConfig = false;
-      }
-   }
-
-   if ( saveDbConfig && checkBox_savePassword->checkState() == Qt::Checked ) {
-      Brewtarget::setOption("dbPassword", btStringEdit_password->text());
-   }
-   else {
-      Brewtarget::removeOption("dbPassword");
-   }
-
-   switch (weightComboBox->itemData(weightComboBox->currentIndex()).toInt(&okay))
-   {
-      case SI:
-      default:
-         Brewtarget::weightUnitSystem = SI;
-         Brewtarget::thingToUnitSystem.insert(Unit::Mass, UnitSystems::siWeightUnitSystem());
-         break;
-      case USCustomary:
-         Brewtarget::weightUnitSystem  = USCustomary;
-         Brewtarget::thingToUnitSystem.insert(Unit::Mass, UnitSystems::usWeightUnitSystem());
-         break;
-      case Imperial:
-         Brewtarget::weightUnitSystem  = Imperial;
-         Brewtarget::thingToUnitSystem.insert(Unit::Mass, UnitSystems::usWeightUnitSystem());
-         break;
-   }
-
-   switch (temperatureComboBox->itemData(temperatureComboBox->currentIndex()).toInt(&okay))
-   {
-      case Celsius:
-      default:
-         Brewtarget::tempScale = Celsius;
-         Brewtarget::thingToUnitSystem.insert(Unit::Temp,UnitSystems::celsiusTempUnitSystem());
-         break;
-      case Fahrenheit:
-         Brewtarget::tempScale = Fahrenheit;
-         Brewtarget::thingToUnitSystem.insert(Unit::Temp,UnitSystems::fahrenheitTempUnitSystem());
-         break;
-   }
-
-   switch (volumeComboBox->itemData(volumeComboBox->currentIndex()).toInt(&okay))
-   {
-      case SI:
-      default:
-         Brewtarget::volumeUnitSystem = SI;
-         Brewtarget::thingToUnitSystem.insert(Unit::Volume,UnitSystems::siVolumeUnitSystem());
-         break;
-      case USCustomary:
-         Brewtarget::volumeUnitSystem = USCustomary;
-         Brewtarget::thingToUnitSystem.insert(Unit::Volume,UnitSystems::usVolumeUnitSystem());
-         break;
-      case Imperial:
-         Brewtarget::volumeUnitSystem = Imperial;
-         Brewtarget::thingToUnitSystem.insert(Unit::Volume,UnitSystems::imperialVolumeUnitSystem());
-         break;
-   }
-
-   switch (gravityComboBox->itemData(gravityComboBox->currentIndex()).toInt(&okay))
-   {
-      case Brewtarget::SG:
-      default:
-         Brewtarget::densityUnit = Brewtarget::SG;
-         Brewtarget::thingToUnitSystem.insert(Unit::Density, UnitSystems::sgDensityUnitSystem());
-         break;
-      case Brewtarget::PLATO:
-         Brewtarget::densityUnit = Brewtarget::PLATO;
-         Brewtarget::thingToUnitSystem.insert(Unit::Density, UnitSystems::platoDensityUnitSystem());
-         break;
-   }
-
-   switch (dateComboBox->itemData(dateComboBox->currentIndex()).toInt(&okay))
-   {
-      case Unit::displayUS:
-      default:
-         Brewtarget::dateFormat = Unit::displayUS;
-         break;
-      case Unit::displayImp:
-         Brewtarget::dateFormat = Unit::displayImp;
-         break;
-      case Unit::displaySI:
-         Brewtarget::dateFormat = Unit::displaySI;
-         break;
-   }
-
-   switch (colorComboBox->itemData(colorComboBox->currentIndex()).toInt(&okay))
-   {
-      case Brewtarget::SRM:
-      default:
-         Brewtarget::thingToUnitSystem.insert(Unit::Color,UnitSystems::srmColorUnitSystem());
-         Brewtarget::colorUnit = Brewtarget::SRM;
-         break;
-      case Brewtarget::EBC:
-         Brewtarget::thingToUnitSystem.insert(Unit::Color,UnitSystems::ebcColorUnitSystem());
-         Brewtarget::colorUnit = Brewtarget::EBC;
-         break;
-   }
-
-   switch (diastaticPowerComboBox->itemData(diastaticPowerComboBox->currentIndex()).toInt(&okay))
-   {
-      case Brewtarget::LINTNER:
-      default:
-         Brewtarget::thingToUnitSystem.insert(Unit::DiastaticPower,UnitSystems::lintnerDiastaticPowerUnitSystem());
-         Brewtarget::diastaticPowerUnit = Brewtarget::LINTNER;
-         break;
-      case Brewtarget::WK:
-         Brewtarget::thingToUnitSystem.insert(Unit::DiastaticPower,UnitSystems::wkDiastaticPowerUnitSystem());
-         Brewtarget::diastaticPowerUnit = Brewtarget::WK;
-         break;
-   }
-
-   int ndx = ibuFormulaComboBox->itemData(ibuFormulaComboBox->currentIndex()).toInt(&okay);
-   Brewtarget::ibuFormula = static_cast<Brewtarget::IbuType>(ndx);
-   ndx = colorFormulaComboBox->itemData(colorFormulaComboBox->currentIndex()).toInt(&okay);
-   Brewtarget::colorFormula = static_cast<Brewtarget::ColorType>(ndx);
-
-   // Set the right language.
-   Brewtarget::setLanguage( ndxToLangCode[ comboBox_lang->currentIndex() ] );
-
-   // Check the new userDataDir.
-   Brewtarget::DBTypes dbEngine = (Brewtarget::DBTypes)comboBox_engine->currentIndex();
-   if ( dbEngine == Brewtarget::SQLITE ) {
-      QString newUserDataDir = btStringEdit_dataDir->text();
-      QDir userDirectory(newUserDataDir);
-
-      // I think this is redundant and could be handled as just a simple db
-      // transfer using the testPassed loop above.
-      if( userDirectory != Brewtarget::getUserDataDir() )
-      {
-         // If there are no data files present...
-         if( ! QFileInfo(userDirectory, "database.sqlite").exists() )
-         {
-            // ...tell user we will copy old data files to new location.
-            QMessageBox::information(this,
-                                    tr("Copy Data"),
-                                    tr("There do not seem to be any data files in this directory, so we will copy your old data here.")
-                                    );
-            Brewtarget::copyDataFiles(newUserDataDir);
-         }
-
-         Brewtarget::userDataDir = newUserDataDir;
-         Brewtarget::setOption("user_data_dir", newUserDataDir);
-         QMessageBox::information(
-            this,
-            tr("Restart"),
-            tr("Please restart Brewtarget.")
-         );
-      }
-
-      Brewtarget::setOption("maximum", spinBox_numBackups->value(), "backups");
-      Brewtarget::setOption("frequency", spinBox_frequency->value(), "backups");
-      Brewtarget::setOption("directory", btStringEdit_backupDir->text(), "backups");
-   }
-
-   Brewtarget::setOption("mashHopAdjustment", ibuAdjustmentMashHopDoubleSpinBox->value() / 100);
-   Brewtarget::setOption("firstWortHopAdjustment", ibuAdjustmentFirstWortDoubleSpinBox->value() / 100);
-
-   // Make sure the main window updates.
-   if( Brewtarget::mainWindow() )
-      Brewtarget::mainWindow()->showChanges();
-
-   setVisible(false);
 }
 
 void OptionDialog::cancel()
@@ -499,7 +354,7 @@ void OptionDialog::showChanges()
 
    // Database stuff -- this looks weird, but trust me. We want SQLITE to be
    // the default for this field
-   int tmp = (Brewtarget::DBTypes)Brewtarget::option("dbType",Brewtarget::SQLITE).toInt();
+   int tmp = Brewtarget::option("dbType",Brewtarget::SQLITE).toInt() - 1;
    comboBox_engine->setCurrentIndex(tmp);
 
    btStringEdit_hostname->setText(Brewtarget::option("dbHostname","localhost").toString());
@@ -512,6 +367,31 @@ void OptionDialog::showChanges()
 
    status = OptionDialog::NOCHANGE;
    changeColors();
+
+   if ( Brewtarget::option("versioning", false).toBool() ) {
+      checkBox_versioning->setCheckState(Qt::Checked);
+      groupBox_deleteBehavior->setEnabled(true);
+      switch ( Brewtarget::option("deletewhat", Brewtarget::DESCENDANT).toInt() ) {
+         case Brewtarget::ANCESTOR:
+            radioButton_deleteAncestor->setChecked(true);
+            break;
+         default:
+            radioButton_deleteDescendant->setChecked(true);
+            break;
+      }
+   }
+   else {
+      checkBox_versioning->setCheckState(Qt::Unchecked);
+      groupBox_deleteBehavior->setEnabled(false);
+   }
+
+   if ( Brewtarget::option("showsnapshots",false).toBool() ) {
+      checkBox_alwaysShowSnaps->setCheckState( Qt::Checked );
+   }
+   else {
+      checkBox_alwaysShowSnaps->setCheckState( Qt::Unchecked );
+   }
+
 }
 
 void OptionDialog::postgresVisible(bool canSee)
@@ -549,7 +429,7 @@ void OptionDialog::sqliteVisible(bool canSee)
    spinBox_frequency->setVisible(canSee);
 }
 
-void OptionDialog::setDbDialog(Brewtarget::DBTypes db) 
+void OptionDialog::setDbDialog(Brewtarget::DBTypes db)
 {
    groupBox_dbConfig->setVisible(false);
 
@@ -577,25 +457,32 @@ void OptionDialog::setDbDialog(Brewtarget::DBTypes db)
       gridLayout->addWidget(btStringEdit_password,4,1);
 
       gridLayout->addWidget(checkBox_savePassword, 4, 4);
-      
+
    }
    else {
       postgresVisible(false);
       sqliteVisible(true);
 
-      gridLayout->addWidget(label_dataDir,0,0);
+      gridLayout->addWidget(label_dataDir,0,0,1,1);
       gridLayout->addWidget(btStringEdit_dataDir,0,1,1,2);
-      gridLayout->addWidget(pushButton_browseDataDir,0,3);
+      gridLayout->addWidget(pushButton_browseDataDir,0,3,1,1);
 
-      gridLayout->addWidget(label_backupDir,1,0);
+      gridLayout->addWidget(label_backupDir,1,0,1,1);
       gridLayout->addWidget(btStringEdit_backupDir,1,1,1,2);
-      gridLayout->addWidget(pushButton_browseBackupDir,1,3);
+      gridLayout->addWidget(pushButton_browseBackupDir,1,3,1,1);
 
-      gridLayout->addWidget(label_numBackups,3,0);
-      gridLayout->addWidget(spinBox_numBackups,3,1);
+      gridLayout->addWidget(label_numBackups,3,0,1,1);
+      gridLayout->addWidget(spinBox_numBackups,3,1,1,1);
 
-      gridLayout->addWidget(label_frequency,4,0);
-      gridLayout->addWidget(spinBox_frequency,4,1);
+      gridLayout->addWidget(label_frequency,4,0,1,1);
+      gridLayout->addWidget(spinBox_frequency,4,1,1,1);
+
+      /*
+      gridLayout->setColumnStretch(0,0);
+      gridLayout->setColumnStretch(1,2);
+      gridLayout->setColumnStretch(2,0);
+      gridLayout->setColumnStretch(3,0);
+      */
    }
    groupBox_dbConfig->setVisible(true);
 }
@@ -604,7 +491,7 @@ void OptionDialog::clearLayout()
 {
    QLayoutItem *child;
 
-   while ( (child = gridLayout->takeAt(0)) != 0 ) {
+   while ( (child = gridLayout->takeAt(0)) != nullptr ) {
       gridLayout->removeItem(child);
    }
 }
@@ -704,34 +591,34 @@ void OptionDialog::createSQLiteElements()
 void OptionDialog::retranslateDbDialog(QDialog *optionsDialog)
 {
    //PostgreSQL stuff
-   label_hostname->setText(QApplication::translate("optionsDialog", "Hostname", 0));
-   label_portnum->setText(QApplication::translate("optionsDialog", "Port", 0));
-   label_schema->setText(QApplication::translate("optionsDialog", "Schema", 0));
-   label_dbName->setText(QApplication::translate("optionsDialog", "Database", 0));
-   label_username->setText(QApplication::translate("optionsDialog", "Username", 0));
-   label_password->setText(QApplication::translate("optionsDialog", "Password", 0));
-   checkBox_savePassword->setText(QApplication::translate("optionsDialog", "Save password", 0));
+   label_hostname->setText(QApplication::translate("optionsDialog", "Hostname", nullptr));
+   label_portnum->setText(QApplication::translate("optionsDialog", "Port", nullptr));
+   label_schema->setText(QApplication::translate("optionsDialog", "Schema", nullptr));
+   label_dbName->setText(QApplication::translate("optionsDialog", "Database", nullptr));
+   label_username->setText(QApplication::translate("optionsDialog", "Username", nullptr));
+   label_password->setText(QApplication::translate("optionsDialog", "Password", nullptr));
+   checkBox_savePassword->setText(QApplication::translate("optionsDialog", "Save password", nullptr));
 
    // SQLite things
-   label_dataDir->setText(QApplication::translate("optionsDialog", "Data Directory", 0));
-   pushButton_browseDataDir->setText(QApplication::translate("optionsDialog", "Browse", 0));
-   label_backupDir->setText(QApplication::translate("optionsDialog", "Backup Directory", 0));
-   pushButton_browseBackupDir->setText(QApplication::translate("optionsDialog", "Browse", 0));
-   label_numBackups->setText(QApplication::translate("optionsDialog", "Number of Backups", 0));
-   label_frequency->setText(QApplication::translate("optionsDialog", "Frequency of Backups", 0));
+   label_dataDir->setText(QApplication::translate("optionsDialog", "Data Directory", nullptr));
+   pushButton_browseDataDir->setText(QApplication::translate("optionsDialog", "Browse", nullptr));
+   label_backupDir->setText(QApplication::translate("optionsDialog", "Backup Directory", nullptr));
+   pushButton_browseBackupDir->setText(QApplication::translate("optionsDialog", "Browse", nullptr));
+   label_numBackups->setText(QApplication::translate("optionsDialog", "Number of Backups", nullptr));
+   label_frequency->setText(QApplication::translate("optionsDialog", "Frequency of Backups", nullptr));
 
    // set up the tooltips if we are using them
 #ifndef QT_NO_TOOLTIP
-   btStringEdit_hostname->setToolTip(QApplication::translate("optionsDialog", "PostgresSQL's host name or IP address", 0));
-   btStringEdit_portnum->setToolTip(QApplication::translate("optionsDialog", "Port the PostgreSQL is listening on", 0));
-   btStringEdit_schema->setToolTip(QApplication::translate("optionsDialog", "The schema containing the database", 0));
-   btStringEdit_username->setToolTip(QApplication::translate("optionsDialog", "User with create/delete table access", 0));
-   btStringEdit_password->setToolTip(QApplication::translate("optionsDialog", "Password for the user", 0));
-   btStringEdit_dbname->setToolTip(QApplication::translate("optionsDialog", "The name of the database", 0));
-   label_dataDir->setToolTip(QApplication::translate("optionsDialog", "Where your database file is",0));
-   label_backupDir->setToolTip(QApplication::translate("optionsDialog", "Where to save your backups",0));
-   label_numBackups->setToolTip(QApplication::translate("optionsDialog", "Number of backups to keep: -1 means never remove, 0 means never backup", 0));
-   label_frequency->setToolTip(QApplication::translate("optionsDialog", "How frequently a backup is made: 1 means always backup", 0));
+   btStringEdit_hostname->setToolTip(QApplication::translate("optionsDialog", "PostgresSQL's host name or IP address", nullptr));
+   btStringEdit_portnum->setToolTip(QApplication::translate("optionsDialog", "Port the PostgreSQL is listening on", nullptr));
+   btStringEdit_schema->setToolTip(QApplication::translate("optionsDialog", "The schema containing the database", nullptr));
+   btStringEdit_username->setToolTip(QApplication::translate("optionsDialog", "User with create/delete table access", nullptr));
+   btStringEdit_password->setToolTip(QApplication::translate("optionsDialog", "Password for the user", nullptr));
+   btStringEdit_dbname->setToolTip(QApplication::translate("optionsDialog", "The name of the database", nullptr));
+   label_dataDir->setToolTip(QApplication::translate("optionsDialog", "Where your database file is",nullptr));
+   label_backupDir->setToolTip(QApplication::translate("optionsDialog", "Where to save your backups",nullptr));
+   label_numBackups->setToolTip(QApplication::translate("optionsDialog", "Number of backups to keep: -1 means never remove, 0 means never backup", nullptr));
+   label_frequency->setToolTip(QApplication::translate("optionsDialog", "How frequently a backup is made: 1 means always backup", nullptr));
 #endif
 }
 
@@ -751,7 +638,9 @@ void OptionDialog::changeEvent(QEvent* e)
 
 void OptionDialog::setEngine(int selected)
 {
-   Brewtarget::DBTypes newEngine = (Brewtarget::DBTypes)selected;
+
+   QVariant data = comboBox_engine->currentData();
+   Brewtarget::DBTypes newEngine = static_cast<Brewtarget::DBTypes>(data.toInt());
 
    setDbDialog(newEngine);
    testRequired();
@@ -764,7 +653,7 @@ void OptionDialog::testConnection()
    QString hostname, schema, database, username, password;
    int port;
 
-   Brewtarget::DBTypes newType = (Brewtarget::DBTypes)comboBox_engine->currentIndex();
+   Brewtarget::DBTypes newType = static_cast<Brewtarget::DBTypes>(comboBox_engine->currentData().toInt());
    // Do nothing if nothing is required.
    if ( status == OptionDialog::NOCHANGE || status == OptionDialog::TESTPASSED)
    {
@@ -788,15 +677,15 @@ void OptionDialog::testConnection()
          success = Database::verifyDbConnection(newType,hostname);
    }
 
-   if ( success ) 
+   if ( success )
    {
-      QMessageBox::information(0,
+      QMessageBox::information(nullptr,
                            QObject::tr("Connection Test"),
                            QString(QObject::tr("Connection to database was successful"))
                            );
       status = OptionDialog::TESTPASSED;
    }
-   else 
+   else
    {
       // Database::testConnection already popped the dialog
       status = OptionDialog::TESTFAILED;
@@ -844,7 +733,357 @@ void OptionDialog::changeColors()
 void OptionDialog::savePassword(bool state)
 {
    if ( state ) {
-      QMessageBox::warning(0, QObject::tr("Plaintext"), 
+      QMessageBox::warning(nullptr, QObject::tr("Plaintext"),
                               QObject::tr("Passwords are saved in plaintext. We make no effort to hide, obscure or otherwise protect the password. By enabling this option, you take full responsibility for any potential problems."));
    }
 }
+
+void OptionDialog::setLoggingControlsState(bool state)
+{
+   groupBox_loggingLevels->setEnabled(state);
+   groupBox_LogFileLocation->setEnabled(state);
+}
+
+void OptionDialog::setFileLocationState(bool state)
+{
+   lineEdit_LogFileLocation->setEnabled( ! state );
+   pushButton_LogFileLocationBrowse->setEnabled( ! state );
+}
+
+void OptionDialog::versioningChanged(bool state)
+{
+   groupBox_deleteBehavior->setEnabled(state);
+}
+
+void OptionDialog::saveAndClose()
+{
+
+   saveDatabaseConfig();
+   saveDefaultUnits();
+   saveFormulae();
+   saveLoggingSettings();
+   saveVersioningSettings();
+
+   // Set the right language.
+   Brewtarget::setLanguage( ndxToLangCode[ comboBox_lang->currentIndex() ] );
+
+   setVisible(false);
+}
+
+bool OptionDialog::saveDefaultUnits()
+{
+   bool okay = true;
+
+   okay &= saveWeightUnits();
+   okay &= saveTemperatureUnits();
+   okay &= saveVolumeUnits();
+   okay &= saveGravityUnits();
+   okay &= saveDateFormat();
+   okay &= saveColorUnits();
+   okay &= saveDiastaticUnits();
+
+   return okay;
+}
+
+void OptionDialog::saveFormulae()
+{
+   bool okay = true;
+
+   int ndx = ibuFormulaComboBox->itemData(ibuFormulaComboBox->currentIndex()).toInt(&okay);
+   Brewtarget::ibuFormula = static_cast<Brewtarget::IbuType>(ndx);
+   ndx = colorFormulaComboBox->itemData(colorFormulaComboBox->currentIndex()).toInt(&okay);
+   Brewtarget::colorFormula = static_cast<Brewtarget::ColorType>(ndx);
+
+   Brewtarget::setOption("mashHopAdjustment", ibuAdjustmentMashHopDoubleSpinBox->value() / 100);
+   Brewtarget::setOption("firstWortHopAdjustment", ibuAdjustmentFirstWortDoubleSpinBox->value() / 100);
+}
+
+void OptionDialog::saveLoggingSettings()
+{
+   // Saving Logging Options to the Log object
+   Log::loggingEnabled = checkBox_enableLogging->isChecked();
+   Log::logLevel = static_cast<Log::LogType>(loggingLevelComboBox->currentData().toInt());
+   Log::logFilePath = QDir(lineEdit_LogFileLocation->text());
+   Log::logUseConfigDir = checkBox_LogFileLocationUseDefault->isChecked();
+
+   if ( Log::logUseConfigDir )
+   {
+      Log::logFilePath = Brewtarget::getConfigDir();
+   }
+
+   Brewtarget::setOption("LoggingEnabled", Log::loggingEnabled);
+   Brewtarget::setOption("LoggingLevel", Log::getTypeName(Log::logLevel));
+   Brewtarget::setOption("LogFilePath", Log::logFilePath.absolutePath());
+   Brewtarget::setOption("LoggingUseConfigDir", Log::logUseConfigDir);
+   Log::changeDirectory();
+
+   // Make sure the main window updates.
+   if( Brewtarget::mainWindow() )
+      Brewtarget::mainWindow()->showChanges();
+
+}
+
+void OptionDialog::saveVersioningSettings()
+{
+   // Save versioning options
+   if ( checkBox_versioning->checkState() == Qt::Checked ) {
+      Brewtarget::setOption("versioning", true);
+      if ( radioButton_deleteAncestor->isChecked() ) {
+         Brewtarget::setOption( "deletewhat", Brewtarget::ANCESTOR );
+      }
+      else {
+         Brewtarget::setOption( "deletewhat", Brewtarget::DESCENDANT );
+      }
+   }
+   else {
+      // the default when versioning is off is to only delete descendant
+      Brewtarget::setOption("versioning", false);
+      Brewtarget::setOption( "deletewhat", Brewtarget::DESCENDANT );
+   }
+
+   Brewtarget::setOption("showsnapshots", checkBox_alwaysShowSnaps->checkState() == Qt::Checked );
+
+}
+
+bool OptionDialog::saveDatabaseConfig() 
+{
+   bool saveDbConfig = true;
+
+   // TODO:: FIX THIS UI. I am really not sure what the best approach is here.
+   if ( status == OptionDialog::NEEDSTEST || status == OptionDialog::TESTFAILED ) {
+      QMessageBox::critical(nullptr,
+            tr("Test connection or cancel"),
+            tr("Saving the options without testing the connection can cause brewtarget to not restart. Your changes have been discarded, which is likely really, really crappy UX. Please open a bug explaining exactly how you got to this message.")
+            );
+      return false;
+   }
+
+   // ask the user if they want to transfer data
+   if ( status == OptionDialog::TESTPASSED ) {
+      saveDbConfig = transferDatabase();
+   }
+
+   if ( saveDbConfig && checkBox_savePassword->checkState() == Qt::Checked ) {
+      Brewtarget::setOption("dbPassword", btStringEdit_password->text());
+   }
+   else {
+      Brewtarget::removeOption("dbPassword");
+   }
+
+   Brewtarget::DBTypes dbEngine = static_cast<Brewtarget::DBTypes>(comboBox_engine->currentData().toInt());
+   if ( dbEngine == Brewtarget::SQLITE ) {
+      saveSqliteConfig();
+   }
+
+   return saveDbConfig;
+}
+
+bool OptionDialog::transferDatabase()
+{
+   bool success = true;
+
+   // This got unpleasant. There are multiple possible transfer paths.
+   // SQLite->Pgsql, Pgsql->Pgsql and Pgsql->SQLite. This will ensure we
+   // preserve the information required.
+   try {
+      QString theQuestion = tr("Would you like brewtarget to transfer your data to the new database? NOTE: If you've already loaded the data, say No");
+      if ( QMessageBox::Yes == QMessageBox::question(this, tr("Transfer database"), theQuestion) ) {
+         Database::instance().convertDatabase(btStringEdit_hostname->text(), btStringEdit_dbname->text(),
+                                                btStringEdit_username->text(), btStringEdit_password->text(),
+                                                btStringEdit_portnum->text().toInt(),
+                                                static_cast<Brewtarget::DBTypes>(comboBox_engine->currentData().toInt()));
+      }
+      // Database engine stuff
+      int engine = comboBox_engine->currentData().toInt();
+      Brewtarget::setOption("dbType", engine);
+      // only write these changes when switching TO pgsql
+      if ( engine == Brewtarget::PGSQL ) {
+         Brewtarget::setOption("dbHostname", btStringEdit_hostname->text());
+         Brewtarget::setOption("dbPortnum", btStringEdit_portnum->text());
+         Brewtarget::setOption("dbSchema", btStringEdit_schema->text());
+         Brewtarget::setOption("dbName", btStringEdit_dbname->text());
+         Brewtarget::setOption("dbUsername", btStringEdit_username->text());
+      }
+      QMessageBox::information(this, tr("Restart"), tr("Please restart brewtarget to connect to the new database"));
+   }
+   catch (QString e) {
+      qCritical() << Q_FUNC_INFO << e;
+      success = false;
+   }
+
+   return success;
+}
+
+void OptionDialog::saveSqliteConfig()
+{
+   // Check the new userDataDir.
+   QString newUserDataDir = btStringEdit_dataDir->text();
+   QDir userDirectory(newUserDataDir);
+
+   // I think this is redundant and could be handled as just a simple db
+   // transfer using the testPassed loop above.
+   if( userDirectory != Brewtarget::getUserDataDir() )
+   {
+      // If there are no data files present...
+      if( ! QFileInfo(userDirectory, "database.sqlite").exists() )
+      {
+         // ...tell user we will copy old data files to new location.
+         QMessageBox::information(this,
+                                 tr("Copy Data"),
+                                 tr("There do not seem to be any data files in this directory, so we will copy your old data here.")
+                                 );
+         Brewtarget::copyDataFiles(newUserDataDir);
+      }
+
+      Brewtarget::userDataDir.setPath(newUserDataDir);
+      Brewtarget::setOption("user_data_dir", newUserDataDir);
+      QMessageBox::information(
+         this,
+         tr("Restart"),
+         tr("Please restart Brewtarget.")
+      );
+   }
+
+   Brewtarget::setOption("maximum", spinBox_numBackups->value(), "backups");
+   Brewtarget::setOption("frequency", spinBox_frequency->value(), "backups");
+   Brewtarget::setOption("directory", btStringEdit_backupDir->text(), "backups");
+}
+
+bool OptionDialog::saveWeightUnits()
+{
+   bool okay = false;
+   switch (weightComboBox->itemData(weightComboBox->currentIndex()).toInt(&okay))
+   {
+      case SI:
+      default:
+         Brewtarget::weightUnitSystem = SI;
+         Brewtarget::thingToUnitSystem.insert(Unit::Mass, &UnitSystems::siWeightUnitSystem);
+         break;
+      case USCustomary:
+         Brewtarget::weightUnitSystem  = USCustomary;
+         Brewtarget::thingToUnitSystem.insert(Unit::Mass, &UnitSystems::usWeightUnitSystem);
+         break;
+      case Imperial:
+         Brewtarget::weightUnitSystem  = Imperial;
+         Brewtarget::thingToUnitSystem.insert(Unit::Mass, &UnitSystems::usWeightUnitSystem);
+         break;
+   }
+
+   return okay;
+}
+
+bool OptionDialog::saveTemperatureUnits()
+{
+   bool okay = false;
+   switch (temperatureComboBox->itemData(temperatureComboBox->currentIndex()).toInt(&okay))
+   {
+      case Celsius:
+      default:
+         Brewtarget::tempScale = Celsius;
+         Brewtarget::thingToUnitSystem.insert(Unit::Temp,&UnitSystems::celsiusTempUnitSystem);
+         break;
+      case Fahrenheit:
+         Brewtarget::tempScale = Fahrenheit;
+         Brewtarget::thingToUnitSystem.insert(Unit::Temp,&UnitSystems::fahrenheitTempUnitSystem);
+         break;
+   }
+
+   return okay;
+}
+
+bool OptionDialog::saveVolumeUnits()
+{
+   bool okay = false;
+   switch (volumeComboBox->itemData(volumeComboBox->currentIndex()).toInt(&okay))
+   {
+      case SI:
+      default:
+         Brewtarget::volumeUnitSystem = SI;
+         Brewtarget::thingToUnitSystem.insert(Unit::Volume,&UnitSystems::siVolumeUnitSystem);
+         break;
+      case USCustomary:
+         Brewtarget::volumeUnitSystem = USCustomary;
+         Brewtarget::thingToUnitSystem.insert(Unit::Volume,&UnitSystems::usVolumeUnitSystem);
+         break;
+      case Imperial:
+         Brewtarget::volumeUnitSystem = Imperial;
+         Brewtarget::thingToUnitSystem.insert(Unit::Volume,&UnitSystems::imperialVolumeUnitSystem);
+         break;
+   }
+   return okay;
+}
+
+bool OptionDialog::saveGravityUnits()
+{
+   bool okay = false;
+   switch (gravityComboBox->itemData(gravityComboBox->currentIndex()).toInt(&okay))
+   {
+      case Brewtarget::SG:
+      default:
+         Brewtarget::densityUnit = Brewtarget::SG;
+         Brewtarget::thingToUnitSystem.insert(Unit::Density, &UnitSystems::sgDensityUnitSystem);
+         break;
+      case Brewtarget::PLATO:
+         Brewtarget::densityUnit = Brewtarget::PLATO;
+         Brewtarget::thingToUnitSystem.insert(Unit::Density, &UnitSystems::platoDensityUnitSystem);
+         break;
+   }
+   return okay;
+}
+
+bool OptionDialog::saveDateFormat()
+{
+   bool okay = false;
+   switch (dateComboBox->itemData(dateComboBox->currentIndex()).toInt(&okay))
+   {
+      case Unit::displayUS:
+      default:
+         Brewtarget::dateFormat = Unit::displayUS;
+         break;
+      case Unit::displayImp:
+         Brewtarget::dateFormat = Unit::displayImp;
+         break;
+      case Unit::displaySI:
+         Brewtarget::dateFormat = Unit::displaySI;
+         break;
+   }
+   return okay;
+}
+
+bool OptionDialog::saveColorUnits()
+{
+   bool okay = false;
+   switch (colorComboBox->itemData(colorComboBox->currentIndex()).toInt(&okay))
+   {
+      case Brewtarget::SRM:
+      default:
+         Brewtarget::thingToUnitSystem.insert(Unit::Color,&UnitSystems::srmColorUnitSystem);
+         Brewtarget::colorUnit = Brewtarget::SRM;
+         break;
+      case Brewtarget::EBC:
+         Brewtarget::thingToUnitSystem.insert(Unit::Color,&UnitSystems::ebcColorUnitSystem);
+         Brewtarget::colorUnit = Brewtarget::EBC;
+         break;
+   }
+   return okay;
+}
+
+bool OptionDialog::saveDiastaticUnits()
+{
+   bool okay = false;
+   switch (diastaticPowerComboBox->itemData(diastaticPowerComboBox->currentIndex()).toInt(&okay))
+   {
+      case Brewtarget::LINTNER:
+      default:
+         Brewtarget::thingToUnitSystem.insert(Unit::DiastaticPower,&UnitSystems::lintnerDiastaticPowerUnitSystem);
+         Brewtarget::diastaticPowerUnit = Brewtarget::LINTNER;
+         break;
+      case Brewtarget::WK:
+         Brewtarget::thingToUnitSystem.insert(Unit::DiastaticPower,&UnitSystems::wkDiastaticPowerUnitSystem);
+         Brewtarget::diastaticPowerUnit = Brewtarget::WK;
+         break;
+   }
+
+   return okay;
+}
+

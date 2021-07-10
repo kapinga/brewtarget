@@ -25,10 +25,10 @@
 class MashDesigner;
 
 #include "ui_mashDesigner.h"
-#include "recipe.h"
-#include "mash.h"
-#include "mashstep.h"
-#include "equipment.h"
+#include "model/Recipe.h"
+#include "model/Mash.h"
+#include "model/MashStep.h"
+#include "model/Equipment.h"
 #include <QDialog>
 #include <QWidget>
 
@@ -42,7 +42,7 @@ class MashDesigner : public QDialog, public Ui::mashDesigner
 {
    Q_OBJECT
 public:
-   MashDesigner(QWidget* parent = 0);
+   MashDesigner(QWidget* parent = nullptr);
    //! Set the recipe we want to design the mash for.
    void setRecipe(Recipe* rec);
 

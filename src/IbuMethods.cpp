@@ -46,7 +46,7 @@ double IbuMethods::getIbus(double AArating, double hops_grams, double finalVolum
          return noonan(AArating, hops_grams, finalVolume_liters, wort_grav, minutes);
          break;
       default:
-         Brewtarget::logE( QObject::tr("Unrecognized IBU formula type. %1").arg(Brewtarget::ibuFormula) );
+         qCritical() << QObject::tr("Unrecognized IBU formula type. %1").arg(Brewtarget::ibuFormula);
          return tinseth(AArating, hops_grams, finalVolume_liters, wort_grav, minutes);
          break;
    }
@@ -70,8 +70,8 @@ double IbuMethods::rager(double AArating, double hops_grams, double finalVolume_
 
 double IbuMethods::noonan(double AArating, double hops_grams, double finalVolume_liters, double wort_grav, double minutes)
 {
-    double volumeFactor = (Units::us_gallons->toSI(5.0))/ finalVolume_liters;
-    double hopsFactor = hops_grams/ (Units::ounces->toSI(1.0) * 1000.0);
+    double volumeFactor = (Units::us_gallons.toSI(5.0))/ finalVolume_liters;
+    double hopsFactor = hops_grams/ (Units::ounces.toSI(1.0) * 1000.0);
     static Polynomial p(Polynomial() << 0.7000029428 << -0.08868853463 << 0.02720809386 << -0.002340415323 << 0.00009925450081 << -0.000002102006144 << 0.00000002132644293 << -0.00000000008229488217);
 
     //using 60 minutes as a general table

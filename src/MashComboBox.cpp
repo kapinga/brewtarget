@@ -22,14 +22,14 @@
 #include "MashComboBox.h"
 #include <QList>
 #include "database.h"
-#include "mash.h"
+#include "model/Mash.h"
 
 MashComboBox::MashComboBox(QWidget* parent)
    : QComboBox(parent)
 {
    setCurrentIndex(-1);
-   connect( &(Database::instance()), SIGNAL(newMashSignal(Mash*)), this, SLOT(addMash(Mash*)) );
-   connect( &(Database::instance()), SIGNAL(deletedSignal(Mash*)), this, SLOT(removeMash(Mash*)) );
+   connect( &(Database::instance()), qOverload<Mash*>(&Database::createdSignal),     this, &MashComboBox::addMash);
+   connect( &(Database::instance()), qOverload<Mash*>(&Database::deletedSignal), this, &MashComboBox::removeMash);
    repopulateList();
 }
 
@@ -38,9 +38,9 @@ void MashComboBox::addMash(Mash* m)
    if( m && !mashObs.contains(m) && m->display() && !m->deleted() )
    {
       mashObs.append(m);
-      connect( m, SIGNAL(changed(QMetaProperty,QVariant)), this, SLOT(changed(QMetaProperty,QVariant)) );
+      connect( m, &NamedEntity::changed, this, &MashComboBox::changed);
    }
-   
+
    addItem( m->name() );
 }
 
@@ -60,7 +60,7 @@ void MashComboBox::removeAllMashs()
 {
    QList<Mash*> tmpMashs(mashObs);
    int i;
-   
+
    for( i = 0; i < tmpMashs.size(); ++i )
       removeMash(tmpMashs[i]);
 }
@@ -68,7 +68,7 @@ void MashComboBox::removeAllMashs()
 void MashComboBox::changed(QMetaProperty prop, QVariant /*val*/)
 {
    int i;
-   
+
    i = mashObs.indexOf( qobject_cast<Mash*>(sender()) );
    if( i >= 0 )
    {
@@ -81,7 +81,7 @@ void MashComboBox::changed(QMetaProperty prop, QVariant /*val*/)
 void MashComboBox::setIndexByMash(Mash* mash)
 {
    int ndx;
-   
+
    ndx = mashObs.indexOf(mash);
    setCurrentIndex(ndx);
 }
@@ -95,19 +95,19 @@ void MashComboBox::repopulateList()
 {
    unsigned int i, size;
    clear();
-   
+
    QList<Mash*> tmpMashs(mashObs);
    size = tmpMashs.size();
    for( i = 0; i < size; ++i )
       removeMash( tmpMashs[i] );
-   
+
    tmpMashs.clear();
    tmpMashs = Database::instance().mashs();
-   
+
    size = tmpMashs.size();
    for( i = 0; i < size; ++i )
       addMash(tmpMashs[i]);
-   
+
    setCurrentIndex(-1);
 }
 

@@ -1,9 +1,18 @@
+#
+# src/CMakeLists.txt is part of Brewtarget
+#
+# See also ../CMakeLists.txt
+#
+
+# Uncomment the next line for verbose build output
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+
 # The current directory in the original source.
 INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_SOURCE_DIR} )
 # The current directory in the output build directory.
 INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR} )
 
-# Put all the required Qt dirs in the includes. 
+# Put all the required Qt dirs in the includes.
 #   That isn't quite what this include does. QT_USE_FILE references
 #   a cmake macro include, which is good but not required.
 #INCLUDE(${QT_USE_FILE})
@@ -16,14 +25,14 @@ INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR} )
 # _header_filename
 #  header to make a .gch
 #
-# _src_list 
+# _src_list
 #   the variable name (do not use ${..}) which contains a
 #     a list of sources (a.cpp b.cpp c.cpp ...)
 #  This macro will append a header file to it, then this src_list can be used in
 #  "add_executable..."
 #
 #
-# Now a .gch file should be generated and gcc should use it. 
+# Now a .gch file should be generated and gcc should use it.
 #        (add -Winvalid-pch to the cpp flags to verify)
 #
 # make clean should delete the pch file
@@ -51,136 +60,153 @@ MACRO (ADD_PCH_RULE  _header_filename _src_list)
                       DEPENDS ${_header})
 ENDMACRO(ADD_PCH_RULE _src_list _header_filename)
 
+#
 # Variable that contains all the .cpp files in this project.
+#
+# You can recreate the body of this list by running the following from the bash prompt in the build directory:
+#    find ../src -name '*.cpp' | sort  | sed 's+^../src+    ${SRCDIR}+' | grep -v Testing.cpp | grep -v main.cpp
+#
 SET( brewtarget_SRCS
     ${SRCDIR}/AboutDialog.cpp
+    ${SRCDIR}/AlcoholTool.cpp
     ${SRCDIR}/Algorithms.cpp
-    ${SRCDIR}/BeerXMLElement.cpp
-    ${SRCDIR}/BeerXMLSortProxyModel.cpp
-    ${SRCDIR}/boiltime.cpp
-    ${SRCDIR}/BrewDayWidget.cpp
-    ${SRCDIR}/BrewDayScrollWidget.cpp
-    ${SRCDIR}/brewnote.cpp
-    ${SRCDIR}/BrewNoteWidget.cpp
-    ${SRCDIR}/BtTabWidget.cpp
-    ${SRCDIR}/BtTreeItem.cpp
-    ${SRCDIR}/BtTreeModel.cpp
-    ${SRCDIR}/BtTreeView.cpp
-    ${SRCDIR}/BtTreeFilterProxyModel.cpp
+    ${SRCDIR}/AncestorDialog.cpp
     ${SRCDIR}/BeerColorWidget.cpp
+    ${SRCDIR}/boiltime.cpp
+    ${SRCDIR}/BrewDayScrollWidget.cpp
+    ${SRCDIR}/BrewDayWidget.cpp
+    ${SRCDIR}/BrewNoteWidget.cpp
+    ${SRCDIR}/brewtarget.cpp
     ${SRCDIR}/BtDatePopup.cpp
+    ${SRCDIR}/BtDigitWidget.cpp
     ${SRCDIR}/BtFolder.cpp
     ${SRCDIR}/BtLabel.cpp
     ${SRCDIR}/BtLineEdit.cpp
-    ${SRCDIR}/BtTextEdit.cpp
-    ${SRCDIR}/brewtarget.cpp
     ${SRCDIR}/BtSplashScreen.cpp
-    ${SRCDIR}/CelsiusTempUnitSystem.cpp
+    ${SRCDIR}/BtTabWidget.cpp
+    ${SRCDIR}/BtTextEdit.cpp
+    ${SRCDIR}/BtTreeFilterProxyModel.cpp
+    ${SRCDIR}/BtTreeItem.cpp
+    ${SRCDIR}/BtTreeModel.cpp
+    ${SRCDIR}/BtTreeView.cpp
     ${SRCDIR}/ColorMethods.cpp
     ${SRCDIR}/ConverterTool.cpp
     ${SRCDIR}/CustomComboBox.cpp
     ${SRCDIR}/database.cpp
+    ${SRCDIR}/DatabaseSchema.cpp
     ${SRCDIR}/DatabaseSchemaHelper.cpp
-    ${SRCDIR}/DiastaticPowerUnitSystem.cpp
-    ${SRCDIR}/equipment.cpp
-    ${SRCDIR}/EbcColorUnitSystem.cpp
     ${SRCDIR}/EquipmentButton.cpp
-    ${SRCDIR}/EquipmentListModel.cpp
     ${SRCDIR}/EquipmentEditor.cpp
-    ${SRCDIR}/FahrenheitTempUnitSystem.cpp
-    ${SRCDIR}/fermentable.cpp
-    ${SRCDIR}/FermentableEditor.cpp
+    ${SRCDIR}/EquipmentListModel.cpp
     ${SRCDIR}/FermentableDialog.cpp
+    ${SRCDIR}/FermentableEditor.cpp
     ${SRCDIR}/FermentableSortFilterProxyModel.cpp
     ${SRCDIR}/FermentableTableModel.cpp
     ${SRCDIR}/HeatCalculations.cpp
-    ${SRCDIR}/hop.cpp
     ${SRCDIR}/HopDialog.cpp
     ${SRCDIR}/HopEditor.cpp
     ${SRCDIR}/HopSortFilterProxyModel.cpp
     ${SRCDIR}/HopTableModel.cpp
     ${SRCDIR}/Html.cpp
     ${SRCDIR}/HydrometerTool.cpp
-    ${SRCDIR}/instruction.cpp
     ${SRCDIR}/IbuGuSlider.cpp
     ${SRCDIR}/IbuMethods.cpp
-    ${SRCDIR}/ImperialVolumeUnitSystem.cpp
-    ${SRCDIR}/InventoryFormatter.cpp
     ${SRCDIR}/InstructionWidget.cpp
+    ${SRCDIR}/InventoryFormatter.cpp
     ${SRCDIR}/Log.cpp
     ${SRCDIR}/MainWindow.cpp
-    ${SRCDIR}/mash.cpp
     ${SRCDIR}/MashButton.cpp
+    ${SRCDIR}/MashComboBox.cpp
+    ${SRCDIR}/MashDesigner.cpp
     ${SRCDIR}/MashEditor.cpp
     ${SRCDIR}/MashListModel.cpp
-    ${SRCDIR}/mashstep.cpp
     ${SRCDIR}/MashStepEditor.cpp
     ${SRCDIR}/MashStepTableModel.cpp
     ${SRCDIR}/MashStepTableWidget.cpp
     ${SRCDIR}/MashWizard.cpp
     ${SRCDIR}/matrix.cpp
-    ${SRCDIR}/misc.cpp
-    ${SRCDIR}/MiscEditor.cpp
     ${SRCDIR}/MiscDialog.cpp
+    ${SRCDIR}/MiscEditor.cpp
     ${SRCDIR}/MiscSortFilterProxyModel.cpp
     ${SRCDIR}/MiscTableModel.cpp
+    ${SRCDIR}/model/BrewNote.cpp
+    ${SRCDIR}/model/Equipment.cpp
+    ${SRCDIR}/model/Fermentable.cpp
+    ${SRCDIR}/model/Hop.cpp
+    ${SRCDIR}/model/Instruction.cpp
+    ${SRCDIR}/model/Mash.cpp
+    ${SRCDIR}/model/MashStep.cpp
+    ${SRCDIR}/model/Misc.cpp
+    ${SRCDIR}/model/NamedEntity.cpp
+    ${SRCDIR}/model/NamedEntityWithInventory.cpp
+    ${SRCDIR}/model/NamedParameterBundle.cpp
+    ${SRCDIR}/model/Recipe.cpp
+    ${SRCDIR}/model/Salt.cpp
+    ${SRCDIR}/model/Style.cpp
+    ${SRCDIR}/model/Water.cpp
+    ${SRCDIR}/model/Yeast.cpp
+    ${SRCDIR}/NamedEntitySortProxyModel.cpp
     ${SRCDIR}/NamedMashEditor.cpp
     ${SRCDIR}/OgAdjuster.cpp
     ${SRCDIR}/OptionDialog.cpp
-    ${SRCDIR}/PlatoDensityUnitSystem.cpp
+    ${SRCDIR}/PitchDialog.cpp
     ${SRCDIR}/PreInstruction.cpp
     ${SRCDIR}/PrimingDialog.cpp
+    ${SRCDIR}/PropertySchema.cpp
     ${SRCDIR}/QueuedMethod.cpp
+    ${SRCDIR}/RadarChart.cpp
     ${SRCDIR}/RangedSlider.cpp
-    ${SRCDIR}/recipe.cpp
+    ${SRCDIR}/RecipeExtrasWidget.cpp
     ${SRCDIR}/RecipeFormatter.cpp
     ${SRCDIR}/RefractoDialog.cpp
+    ${SRCDIR}/SaltTableModel.cpp
     ${SRCDIR}/ScaleRecipeTool.cpp
-    ${SRCDIR}/SgDensityUnitSystem.cpp
-    ${SRCDIR}/SIVolumeUnitSystem.cpp
-    ${SRCDIR}/SIWeightUnitSystem.cpp
-    ${SRCDIR}/SrmColorUnitSystem.cpp
+    ${SRCDIR}/SimpleUndoableUpdate.cpp
     ${SRCDIR}/StrikeWaterDialog.cpp
-    ${SRCDIR}/style.cpp
     ${SRCDIR}/StyleButton.cpp
-    ${SRCDIR}/StyleListModel.cpp
     ${SRCDIR}/StyleEditor.cpp
+    ${SRCDIR}/StyleListModel.cpp
     ${SRCDIR}/StyleRangeWidget.cpp
     ${SRCDIR}/StyleSortFilterProxyModel.cpp
+    ${SRCDIR}/TableSchema.cpp
     ${SRCDIR}/TimerListDialog.cpp
     ${SRCDIR}/TimerMainDialog.cpp
     ${SRCDIR}/TimerWidget.cpp
-    ${SRCDIR}/TimeUnitSystem.cpp
-    ${SRCDIR}/unit.cpp
+    ${SRCDIR}/Unit.cpp
     ${SRCDIR}/UnitSystem.cpp
-    ${SRCDIR}/UnitSystems.cpp
-    ${SRCDIR}/USVolumeUnitSystem.cpp
-    ${SRCDIR}/USWeightUnitSystem.cpp
-    ${SRCDIR}/water.cpp
+    ${SRCDIR}/WaterButton.cpp
+    ${SRCDIR}/WaterDialog.cpp
+    ${SRCDIR}/WaterEditor.cpp
+    ${SRCDIR}/WaterListModel.cpp
+    ${SRCDIR}/WaterSortFilterProxyModel.cpp
     ${SRCDIR}/WaterTableModel.cpp
     ${SRCDIR}/WaterTableWidget.cpp
-    ${SRCDIR}/WaterEditor.cpp
-    ${SRCDIR}/yeast.cpp
+    ${SRCDIR}/xml/BeerXml.cpp
+    ${SRCDIR}/xml/BtDomErrorHandler.cpp
+    ${SRCDIR}/xml/XercesHelpers.cpp
+    ${SRCDIR}/xml/XmlCoding.cpp
+    ${SRCDIR}/xml/XmlMashStepRecord.cpp
+    ${SRCDIR}/xml/XmlRecipeRecord.cpp
+    ${SRCDIR}/xml/XmlRecordCount.cpp
+    ${SRCDIR}/xml/XmlRecord.cpp
     ${SRCDIR}/YeastDialog.cpp
     ${SRCDIR}/YeastEditor.cpp
-    ${SRCDIR}/YeastTableModel.cpp
     ${SRCDIR}/YeastSortFilterProxyModel.cpp
-    ${SRCDIR}/MashDesigner.cpp
-    ${SRCDIR}/BtDigitWidget.cpp
-    ${SRCDIR}/PitchDialog.cpp
-    ${SRCDIR}/RecipeExtrasWidget.cpp
+    ${SRCDIR}/YeastTableModel.cpp
 )
 
 # List of all the *.ui.
 # TODO: can I somehow have a separate CMakeLists.txt
 # in the ui/ directory instead of here?
 SET( brewtarget_UIS
+    ${UIDIR}/ancestorDialog.ui
     ${UIDIR}/brewDayWidget.ui
     ${UIDIR}/brewDayScrollWidget.ui
     ${UIDIR}/brewNoteWidget.ui
     ${UIDIR}/mainWindow.ui
     ${UIDIR}/mashStepEditor.ui
     ${UIDIR}/miscEditor.ui
+    ${UIDIR}/equipmentEditor.ui
     ${UIDIR}/fermentableEditor.ui
     ${UIDIR}/hopEditor.ui
     ${UIDIR}/instructionWidget.ui
@@ -196,6 +222,7 @@ SET( brewtarget_UIS
     ${UIDIR}/timerMainDialog.ui
     ${UIDIR}/timerWidget.ui
     ${UIDIR}/waterEditor.ui
+    ${UIDIR}/waterDialog.ui
     ${UIDIR}/yeastEditor.ui
     ${UIDIR}/mashDesigner.ui
     ${UIDIR}/pitchDialog.ui
@@ -203,38 +230,46 @@ SET( brewtarget_UIS
     ${UIDIR}/recipeExtrasWidget.ui
 )
 
+#
 # The list of files that need to be moc'd.
 # In other words, classes that have Q_OBJECT declarations and stuff.
+# NB: This is NOT a list of ALL header files!
+#
+# You can recreate the body of this list by running the following from the bash prompt in the build directory:
+#    grep -rl Q_OBJECT ../src | sort | sed 's+^../src+    ${SRCDIR}+' | grep -v Testing.h
+#
 SET( brewtarget_MOC_HEADERS
     ${SRCDIR}/AboutDialog.h
+    ${SRCDIR}/AlcoholTool.h
+    ${SRCDIR}/AncestorDialog.h
     ${SRCDIR}/BeerColorWidget.h
-    ${SRCDIR}/BeerXMLElement.h
-    ${SRCDIR}/BeerXMLSortProxyModel.h
+    ${SRCDIR}/beerxml.h
     ${SRCDIR}/boiltime.h
-    ${SRCDIR}/BrewDayWidget.h
     ${SRCDIR}/BrewDayScrollWidget.h
-    ${SRCDIR}/brewnote.h
+    ${SRCDIR}/BrewDayWidget.h
     ${SRCDIR}/BrewNoteWidget.h
     ${SRCDIR}/brewtarget.h
-    ${SRCDIR}/BtTabWidget.h
-    ${SRCDIR}/BtTreeModel.h
-    ${SRCDIR}/BtTreeView.h
-    ${SRCDIR}/BtTreeFilterProxyModel.h
-    ${SRCDIR}/BtDigitWidget.h
     ${SRCDIR}/BtDatePopup.h
+    ${SRCDIR}/BtDigitWidget.h
     ${SRCDIR}/BtFolder.h
     ${SRCDIR}/BtLabel.h
     ${SRCDIR}/BtLineEdit.h
-    ${SRCDIR}/BtTextEdit.h
     ${SRCDIR}/BtSplashScreen.h
+    ${SRCDIR}/BtTabWidget.h
+    ${SRCDIR}/BtTextEdit.h
+    ${SRCDIR}/BtTreeFilterProxyModel.h
+    ${SRCDIR}/BtTreeModel.h
+    ${SRCDIR}/BtTreeView.h
+    ${SRCDIR}/CMakeLists.txt
+    ${SRCDIR}/.CMakeLists.txt.kate-swp
     ${SRCDIR}/ConverterTool.h
     ${SRCDIR}/CustomComboBox.h
     ${SRCDIR}/database.h
     ${SRCDIR}/EquipmentButton.h
-    ${SRCDIR}/EquipmentListModel.h
     ${SRCDIR}/EquipmentEditor.h
-    ${SRCDIR}/FermentableEditor.h
+    ${SRCDIR}/EquipmentListModel.h
     ${SRCDIR}/FermentableDialog.h
+    ${SRCDIR}/FermentableEditor.h
     ${SRCDIR}/FermentableSortFilterProxyModel.h
     ${SRCDIR}/FermentableTableModel.h
     ${SRCDIR}/HopDialog.h
@@ -244,12 +279,11 @@ SET( brewtarget_MOC_HEADERS
     ${SRCDIR}/HydrometerTool.h
     ${SRCDIR}/IbuGuSlider.h
     ${SRCDIR}/InstructionWidget.h
-    ${SRCDIR}/Log.h
     ${SRCDIR}/MainWindow.h
     ${SRCDIR}/MashButton.h
+    ${SRCDIR}/MashComboBox.h
     ${SRCDIR}/MashDesigner.h
     ${SRCDIR}/MashEditor.h
-    ${SRCDIR}/NamedMashEditor.h
     ${SRCDIR}/MashListModel.h
     ${SRCDIR}/MashStepEditor.h
     ${SRCDIR}/MashStepTableModel.h
@@ -259,44 +293,58 @@ SET( brewtarget_MOC_HEADERS
     ${SRCDIR}/MiscEditor.h
     ${SRCDIR}/MiscSortFilterProxyModel.h
     ${SRCDIR}/MiscTableModel.h
+    ${SRCDIR}/model/BrewNote.h
+    ${SRCDIR}/model/Equipment.h
+    ${SRCDIR}/model/Fermentable.h
+    ${SRCDIR}/model/Hop.h
+    ${SRCDIR}/model/Instruction.h
+    ${SRCDIR}/model/Mash.h
+    ${SRCDIR}/model/MashStep.h
+    ${SRCDIR}/model/Misc.h
+    ${SRCDIR}/model/NamedEntity.h
+    ${SRCDIR}/model/NamedEntityWithInventory.h
+    ${SRCDIR}/model/Recipe.h
+    ${SRCDIR}/model/Salt.h
+    ${SRCDIR}/model/Style.h
+    ${SRCDIR}/model/Water.h
+    ${SRCDIR}/model/Yeast.h
+    ${SRCDIR}/NamedEntitySortProxyModel.h
+    ${SRCDIR}/NamedMashEditor.h
     ${SRCDIR}/OgAdjuster.h
     ${SRCDIR}/OptionDialog.h
     ${SRCDIR}/PitchDialog.h
     ${SRCDIR}/PrimingDialog.h
+    ${SRCDIR}/PropertySchema.h
     ${SRCDIR}/QueuedMethod.h
     ${SRCDIR}/RangedSlider.h
     ${SRCDIR}/RecipeExtrasWidget.h
     ${SRCDIR}/RecipeFormatter.h
     ${SRCDIR}/RefractoDialog.h
+    ${SRCDIR}/SaltTableModel.h
     ${SRCDIR}/ScaleRecipeTool.h
+    ${SRCDIR}/SimpleUndoableUpdate.h
     ${SRCDIR}/StrikeWaterDialog.h
     ${SRCDIR}/StyleButton.h
-    ${SRCDIR}/StyleListModel.h
     ${SRCDIR}/StyleEditor.h
+    ${SRCDIR}/StyleListModel.h
     ${SRCDIR}/StyleRangeWidget.h
     ${SRCDIR}/StyleSortFilterProxyModel.h
+    ${SRCDIR}/TableSchema.h
     ${SRCDIR}/TimerListDialog.h
     ${SRCDIR}/TimerMainDialog.h
     ${SRCDIR}/TimerWidget.h
     ${SRCDIR}/unit.h
+    ${SRCDIR}/WaterButton.h
+    ${SRCDIR}/WaterDialog.h
+    ${SRCDIR}/WaterEditor.h
+    ${SRCDIR}/WaterListModel.h
+    ${SRCDIR}/WaterSortFilterProxyModel.h
     ${SRCDIR}/WaterTableModel.h
     ${SRCDIR}/WaterTableWidget.h
-    ${SRCDIR}/WaterEditor.h
     ${SRCDIR}/YeastDialog.h
     ${SRCDIR}/YeastEditor.h
     ${SRCDIR}/YeastSortFilterProxyModel.h
     ${SRCDIR}/YeastTableModel.h
-    ${SRCDIR}/equipment.h
-    ${SRCDIR}/fermentable.h
-    ${SRCDIR}/hop.h
-    ${SRCDIR}/instruction.h
-    ${SRCDIR}/mash.h
-    ${SRCDIR}/mashstep.h
-    ${SRCDIR}/misc.h
-    ${SRCDIR}/recipe.h
-    ${SRCDIR}/style.h
-    ${SRCDIR}/water.h
-    ${SRCDIR}/yeast.h
 )
 
 SET( FILES_TO_TRANSLATE
@@ -334,13 +382,13 @@ ADD_CUSTOM_TARGET(translations DEPENDS ${QM_FILES})
 SET(brewtarget_ICON "")
 
 IF( WIN32 AND MINGW )
-  ADD_CUSTOM_COMMAND(OUTPUT ${WINDIR}/icon.o
+  ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_BINARY_DIR}/src/icon.o
                      COMMAND windres.exe -I${CMAKE_CURRENT_SOURCE_DIR}
                      -i${RCFILE}
-                     -o${WINDIR}/icon.o
+                     -o${CMAKE_BINARY_DIR}/src/icon.o
                      DEPENDS ${RCFILE}
   )
-  SET(brewtarget_ICON ${WINDIR}/icon.o)
+  SET(brewtarget_ICON ${CMAKE_BINARY_DIR}/src/icon.o)
 ELSEIF(WIN32)
   SET(brewtarget_ICON ${RCFILE})
 ENDIF()
@@ -419,23 +467,43 @@ IF( WIN32 AND MINGW )
    #    '-Wl,-subsystem,windows' supresses the output command window.
    #    '-Wl,-s' strips the executable of symbols.
    SET_TARGET_PROPERTIES( ${brewtarget_EXECUTABLE} PROPERTIES LINK_FLAGS "-Wl,-enable-stdcall-fixup -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc -mthreads -Wl,-subsystem,windows")
+
+   if(TARGET Qt5::windeployqt)
+      # execute windeployqt in a tmp directory after build
+      add_custom_command(TARGET ${brewtarget_EXECUTABLE}
+         POST_BUILD
+         COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/windeployqt"
+         COMMAND Qt5::windeployqt --dir "${CMAKE_CURRENT_BINARY_DIR}/windeployqt" --no-translations --compiler-runtime "$<TARGET_FILE_DIR:${brewtarget_EXECUTABLE}>/$<TARGET_FILE_NAME:${brewtarget_EXECUTABLE}>"
+   )
+
+   # copy deployment directory during installation
+   install(
+      DIRECTORY
+      "${CMAKE_CURRENT_BINARY_DIR}/windeployqt/"
+      DESTINATION bin
+   )
+   endif()
 ENDIF()
 
 SET( QT5_USE_MODULES_LIST
    ${brewtarget_EXECUTABLE}
-   Widgets
-   Network
-   PrintSupport
-   Sql
-   Svg
-   Xml
+   Qt5::Widgets
+   Qt5::Network
+   Qt5::PrintSupport
+   Qt5::Sql
+   Qt5::Svg
+   Qt5::Xml
    )
 
 IF( NOT ${NO_QTMULTIMEDIA})
-SET( QT5_USE_MODULES_LIST ${QT5_USE_MODULES_LIST} Multimedia)
+   SET( QT5_USE_MODULES_LIST ${QT5_USE_MODULES_LIST} Qt5::Multimedia)
 ENDIF()
 
-QT5_USE_MODULES( ${QT5_USE_MODULES_LIST})
+# The dl library is needed on non-Windows platforms for Boost Stacktrace
+IF(NOT WIN32)
+   SET(LIBDL dl)
+ENDIF()
+target_link_libraries( ${QT5_USE_MODULES_LIST} ${XercesC_LIBRARIES} ${XalanC_LIBRARIES} ${LIBDL} )
 
 #=================================Tests========================================
 
@@ -449,20 +517,20 @@ ADD_EXECUTABLE(
 
 SET( QT5_USE_MODULES_LIST
    brewtarget_tests
-   Widgets
-   Network
-   PrintSupport
-   Sql
-   Svg
-   Xml
-   Test
+   Qt5::Widgets
+   Qt5::Network
+   Qt5::PrintSupport
+   Qt5::Sql
+   Qt5::Svg
+   Qt5::Xml
+   Qt5::Test
    )
 
 IF( NOT ${NO_QTMULTIMEDIA})
-SET( QT5_USE_MODULES_LIST ${QT5_USE_MODULES_LIST} Multimedia)
+SET( QT5_USE_MODULES_LIST ${QT5_USE_MODULES_LIST} Qt5::Multimedia)
 ENDIF()
 
-QT5_USE_MODULES(${QT5_USE_MODULES_LIST})
+target_link_libraries(${QT5_USE_MODULES_LIST} ${XercesC_LIBRARIES} ${XalanC_LIBRARIES} ${LIBDL})
 
 ADD_TEST(
    NAME pstdintTest
@@ -476,6 +544,10 @@ ADD_TEST(
    NAME postBoilLossOgTest
    COMMAND brewtarget_tests postBoilLossOgTest
 )
+add_test(
+   NAME testLogRotation
+   COMMAND brewtarget_tests testLogRotation
+)
 #=================================Installs=====================================
 
 # Install executable.
@@ -484,6 +556,30 @@ INSTALL( TARGETS ${brewtarget_EXECUTABLE}
          RUNTIME DESTINATION ${TARGETPATH}
          COMPONENT ${RUNTIME_INSTALL_COMPONENT} )
 
+IF( WIN32 )
+      install(CODE
+      "
+         file(GET_RUNTIME_DEPENDENCIES
+            RESOLVED_DEPENDENCIES_VAR deps
+            UNRESOLVED_DEPENDENCIES_VAR confdeps
+            EXECUTABLES src/${brewtarget_EXECUTABLE}.exe
+            PRE_EXCLUDE_REGEXES \"^api-ms-win.*\$|^ext-ms.*\$\"
+            POST_EXCLUDE_REGEXES \".*system32.*\"
+            DIRECTORIES ${Mingw_Path}
+         )
+         #message(\"Installing: \${deps}\")
+         #message(\"Not found: \${confdeps}\")
+         FOREACH (fdep IN LISTS deps)
+            message( \"\${fdep}\" )
+            file( INSTALL
+               DESTINATION bin
+               TYPE SHARED_LIBRARY
+               FOLLOW_SYMLINK_CHAIN
+               FILES \"\${fdep}\")
+         ENDFOREACH()
+      ")
+   ENDIF()
+
 # Install the translations.
 INSTALL(FILES ${QM_FILES}
         DESTINATION "${DATAPATH}/translations_qm"
@@ -491,6 +587,8 @@ INSTALL(FILES ${QM_FILES}
 
 # http://pmarinc-tidylib.googlecode.com/hg/src/Sigil/CMakeLists.txt?r=8276c61e05bc385d5ffbcc58e1f007f84b0c52df
 IF( APPLE )
+   SET ( BOOST_GNU_SOURCE_FLAG "-D_GNU_SOURCE" )
+   SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BOOST_GNU_SOURCE_FLAG}" )
    # make addframeworks should copy the Qt libraries to the app.
    SET(QT_BINARY_DIR "${_qt5Core_install_prefix}/bin")
    ADD_CUSTOM_TARGET(
@@ -500,4 +598,3 @@ IF( APPLE )
       DEPENDS ${brewtarget_EXECUTABLE}
    )
 ENDIF()
-

@@ -18,29 +18,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "unit.h"
+#include "Unit.h"
 #include "FermentableSortFilterProxyModel.h"
 #include "FermentableTableModel.h"
-#include "fermentable.h"
+#include "model/Fermentable.h"
 #include "brewtarget.h"
 #include <iostream>
 #include <QDebug>
 
-FermentableSortFilterProxyModel::FermentableSortFilterProxyModel(QObject *parent, bool filt) 
+FermentableSortFilterProxyModel::FermentableSortFilterProxyModel(QObject *parent, bool filt)
 : QSortFilterProxyModel(parent)
 {
    filter = filt;
 }
 
-bool FermentableSortFilterProxyModel::lessThan(const QModelIndex &left, 
+bool FermentableSortFilterProxyModel::lessThan(const QModelIndex &left,
                                          const QModelIndex &right) const
 {
    QVariant leftFermentable = sourceModel()->data(left);
    QVariant rightFermentable = sourceModel()->data(right);
    double leftDouble, rightDouble;
 
-   Unit* unit = Units::kilograms;
-   Unit* colorunit = Units::srm;
+   Unit const * unit = &Units::kilograms;
+   Unit const * colorunit = &Units::srm;
 
    switch( left.column() )
    {
@@ -87,7 +87,7 @@ double FermentableSortFilterProxyModel::toDouble(QVariant side) const
 
    amt = Brewtarget::toDouble(side.toString(), &ok);
    if ( ! ok )
-      Brewtarget::logW( QString("FermentableSortFilterProxyModel::lessThan could not convert %1 to double").arg(side.toString()));
+      qWarning() << QString("FermentableSortFilterProxyModel::lessThan could not convert %1 to double").arg(side.toString());
    return amt;
 }
 

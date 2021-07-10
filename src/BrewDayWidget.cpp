@@ -29,11 +29,11 @@
 #include "database.h"
 #include "InstructionWidget.h"
 #include "TimerWidget.h"
-#include "instruction.h"
+#include "model/Instruction.h"
 #include "brewtarget.h"
 #include "BrewDayWidget.h"
-#include "recipe.h"
-#include "style.h"
+#include "model/Recipe.h"
+#include "model/Style.h"
 
 // NOTE: QPrinter has no parent? Will it get destroyed properly?
 BrewDayWidget::BrewDayWidget(QWidget* parent) :
@@ -56,7 +56,11 @@ BrewDayWidget::BrewDayWidget(QWidget* parent) :
 
 
    // Set up the printer stuff
+#if QT_VERSION < QT_VERSION_CHECK(5,15,0)
    printer->setPageSize(QPrinter::Letter);
+#else
+   printer->setPageSize(QPageSize(QPageSize::Letter));
+#endif
 
    // populate the drop down list
 
@@ -96,19 +100,19 @@ void BrewDayWidget::removeSelectedInstruction()
       return;
    listWidget->takeItem(row);
    repopulateListWidget();
-   recObs->remove(recObs->instructions()[row]);
+   recObs->removeInstruction(recObs->instructions()[row]);
 }
 
 void BrewDayWidget::pushInstructionUp()
 {
    if( recObs == 0 )
       return;
-   
+
    QList<Instruction*> ins = recObs->instructions();
    int row = listWidget->currentRow();
    if( row <= 0 )
       return;
-   
+
    recObs->swapInstructions(ins[row], ins[row-1]);
    QString instrStep = listWidget->item(row)->text();
    listWidget->insertItem(row, listWidget->item(row-1)->text());
@@ -121,12 +125,12 @@ void BrewDayWidget::pushInstructionDown()
 {
    if( recObs == 0 )
       return;
-   
+
    QList<Instruction*> ins = recObs->instructions();
    int row = listWidget->currentRow();
    if( row >= listWidget->count() )
       return;
-   
+
    recObs->swapInstructions(ins[row], ins[row+1]);
   QString instrStep = listWidget->item(row+1)->text();
    listWidget->insertItem(row+1, listWidget->item(row)->text());
@@ -135,7 +139,7 @@ void BrewDayWidget::pushInstructionDown()
   // repopulateListWidget();
 }
 
-QString BrewDayWidget::getCSS() 
+QString BrewDayWidget::getCSS()
 {
    if ( cssName == NULL )
        cssName = ":/css/brewday.css";
@@ -179,19 +183,19 @@ QString BrewDayWidget::buildTitleTable()
 
    body += QString("<tr><td class=\"left\">%1</td><td class=\"value\">%2</td><td class=\"right\">%3</td><td class=\"value\">%4</td></tr>")
            .arg(tr("Boil Volume"))
-           .arg(Brewtarget::displayAmount(recObs->boilSize_l(),Units::liters,2))
+           .arg(Brewtarget::displayAmount(recObs->boilSize_l(),&Units::liters,2))
            .arg(tr("Preboil Gravity"))
-           .arg(Brewtarget::displayAmount(recObs->boilGrav(), Units::sp_grav, 3));
+           .arg(Brewtarget::displayAmount(recObs->boilGrav(), &Units::sp_grav, 3));
 
    body += QString("<tr><td class=\"left\">%1</td><td class=\"value\">%2</td><td class=\"right\">%3</td><td class=\"value\">%4</td></tr>")
            .arg(tr("Final Volume"))
-           .arg(Brewtarget::displayAmount(recObs->batchSize_l(), Units::liters,2))
+           .arg(Brewtarget::displayAmount(recObs->batchSize_l(), &Units::liters,2))
            .arg(tr("Starting Gravity"))
-           .arg(Brewtarget::displayAmount(recObs->og(), Units::sp_grav, 3));
+           .arg(Brewtarget::displayAmount(recObs->og(), &Units::sp_grav, 3));
 
    body += QString("<tr><td class=\"left\">%1</td><td class=\"value\">%2</td><td class=\"right\">%3</td><td class=\"value\">%4</td></tr>")
            .arg(tr("Boil Time"))
-           .arg(Brewtarget::displayAmount(recObs->boilTime_min(),Units::minutes))
+           .arg(Brewtarget::displayAmount(recObs->boilTime_min(),&Units::minutes))
            .arg(tr("IBU"))
            .arg(Brewtarget::displayAmount(recObs->IBU(),0,1));
 
@@ -227,7 +231,7 @@ QString BrewDayWidget::buildInstructionTable()
       QList<QString> reagents;
 
       if(instructions[i]->interval())
-         stepTime = Brewtarget::displayAmount(instructions[i]->interval(), Units::minutes, 0);
+         stepTime = Brewtarget::displayAmount(instructions[i]->interval(), &Units::minutes, 0);
       else
          stepTime = "--";
 
@@ -235,7 +239,7 @@ QString BrewDayWidget::buildInstructionTable()
       reagents = instructions[i]->reagents();
       if ( reagents.size() > 1 ) {
          tmp = "<ul>";
-         for ( j = 0; j < reagents.size(); j++ ) 
+         for ( j = 0; j < reagents.size(); j++ )
          {
             tmp += QString("<li>%1</li>")
                    .arg(reagents[j]);
@@ -279,7 +283,7 @@ QString BrewDayWidget::buildFooterTable()
    return bottom;
 }
 
-bool BrewDayWidget::loadComplete(bool ok) 
+bool BrewDayWidget::loadComplete(bool ok)
 {
    doc->print(printer);
    return ok;
@@ -332,11 +336,11 @@ void BrewDayWidget::setRecipe(Recipe* rec)
 {
    if( recObs )
       disconnect( recObs, 0, this, 0 );
-   
+
    recObs = rec;
    if( recObs )
-      connect( recObs, &BeerXMLElement::changed, this, &BrewDayWidget::changed );
-   
+      connect( recObs, &NamedEntity::changed, this, &BrewDayWidget::changed );
+
    showChanges();
 }
 

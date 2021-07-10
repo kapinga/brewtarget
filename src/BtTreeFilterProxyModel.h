@@ -29,13 +29,14 @@ class BtTreeFilterProxyModel;
 #include "BtTreeModel.h"
 #include "BtTreeView.h"
 #include "BtTreeItem.h"
-#include "recipe.h"
-#include "equipment.h"
-#include "fermentable.h"
-#include "misc.h"
-#include "hop.h"
-#include "yeast.h"
-#include "style.h"
+#include "model/Recipe.h"
+#include "model/Equipment.h"
+#include "model/Fermentable.h"
+#include "model/Misc.h"
+#include "model/Hop.h"
+#include "model/Yeast.h"
+#include "model/Style.h"
+#include "model/Water.h"
 
 /*!
  * \class BtTreeFilterProxyModel
@@ -65,6 +66,7 @@ private:
    bool lessThanHop(BtTreeModel* model,const QModelIndex &left, const QModelIndex &right) const;
    bool lessThanYeast(BtTreeModel* model,const QModelIndex &left, const QModelIndex &right) const;
    bool lessThanStyle(BtTreeModel* model,const QModelIndex &left, const QModelIndex &right) const;
+   bool lessThanWater(BtTreeModel* model,const QModelIndex &left, const QModelIndex &right) const;
 };
 
 #endif

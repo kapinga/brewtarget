@@ -20,7 +20,7 @@
 #include "TimerMainDialog.h"
 #include <QMessageBox>
 #include <QToolTip>
-#include "unit.h"
+#include "Unit.h"
 
 TimerMainDialog::TimerMainDialog(MainWindow* parent) : QDialog(parent),
     mainWindow(parent),
@@ -128,9 +128,11 @@ void TimerMainDialog::resetTimers()
     boilTime->setBoilTime(setBoilTimeBox->value() * 60);
     updateTime();
     // Reset all children timers
-    if (!timers->isEmpty())
-        foreach (TimerWidget* t, *timers)
+    if (!timers->isEmpty()) {
+        foreach (TimerWidget* t, *timers) {
             t->reset();
+        }
+    }
 }
 
 void TimerMainDialog::on_setBoilTimeBox_valueChanged(int t)
@@ -252,7 +254,7 @@ void TimerMainDialog::on_loadRecipesButton_clicked()
     hops = recipe->hops();
     foreach (Hop* h, hops) {
         if (h->use() == 2) { //2 = Boil addition -- Hop::Use enum
-            note = tr("%1 of %2").arg(Brewtarget::displayAmount(h->amount_kg(), "TimerNote", "hop_amount", Units::kilograms)).arg(h->name());
+            note = tr("%1 of %2").arg(Brewtarget::displayAmount(h->amount_kg(), "TimerNote", "hop_amount", &Units::kilograms)).arg(h->name());
             int newTime = h->time_min() * 60;
             foreach (TimerWidget* td, *timers) {
                 if (td->getTime() == newTime){

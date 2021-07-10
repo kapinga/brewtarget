@@ -21,17 +21,17 @@
 #include "brewtarget.h"
 #include "HopSortFilterProxyModel.h"
 #include "HopTableModel.h"
-#include "hop.h"
-#include "unit.h"
+#include "model/Hop.h"
+#include "Unit.h"
 #include <iostream>
 
-HopSortFilterProxyModel::HopSortFilterProxyModel(QObject *parent, bool filt) 
+HopSortFilterProxyModel::HopSortFilterProxyModel(QObject *parent, bool filt)
 : QSortFilterProxyModel(parent)
 {
    filter = filt;
 }
 
-bool HopSortFilterProxyModel::lessThan(const QModelIndex &left, 
+bool HopSortFilterProxyModel::lessThan(const QModelIndex &left,
                                          const QModelIndex &right) const
 {
     QVariant leftHop = sourceModel()->data(left);
@@ -41,18 +41,18 @@ bool HopSortFilterProxyModel::lessThan(const QModelIndex &left,
     int lUse, rUse;
     double lAlpha, rAlpha;
     bool ok = false;
-    Unit* unit = Units::kilograms;
+    Unit const * unit = &Units::kilograms;
 
    switch( left.column() )
    {
       case HOPALPHACOL:
          lAlpha = Brewtarget::toDouble(leftHop.toString(), &ok );
          if ( ! ok )
-            Brewtarget::logW( QString("HopSortFilterProxyModel::lessThan() could not convert %1 to double").arg(leftHop.toString()));
+            qWarning() << QString("HopSortFilterProxyModel::lessThan() could not convert %1 to double").arg(leftHop.toString());
 
          rAlpha = Brewtarget::toDouble(rightHop.toString(), &ok );
          if ( ! ok )
-            Brewtarget::logW( QString("HopSortFilterProxyModel::lessThan() could not convert %1 to double").arg(rightHop.toString()));
+            qWarning() << QString("HopSortFilterProxyModel::lessThan() could not convert %1 to double").arg(rightHop.toString());
 
          return lAlpha < rAlpha;
 
@@ -73,7 +73,7 @@ bool HopSortFilterProxyModel::lessThan(const QModelIndex &left,
         lUse = uses.indexOf( (sourceModel()->data(lSibling)).toString() );
         rUse = uses.indexOf( (sourceModel()->data(rSibling)).toString() );
 
-        unit = Units::minutes; // not Units::kilogram
+        unit = &Units::minutes; // not &Units::kilogram
         if ( lUse == rUse )
             return Brewtarget::qStringToSI(leftHop.toString(),unit) < Brewtarget::qStringToSI(rightHop.toString(),unit);
 
